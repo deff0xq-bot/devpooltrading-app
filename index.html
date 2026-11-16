@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="robots" content="noindex">
+<title>DevpoolTrading</title>
+<link rel="icon" href="kit/brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="kit/brand/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="kit/brand/favicon-180.png">
+<!-- telegram-sdk -->
+<!-- app-flags -->
+<link rel="stylesheet" href="kit/tokens.css">
+<link rel="stylesheet" href="kit/kit.css">
+<link rel="stylesheet" href="kit/header.css">
+<link rel="stylesheet" href="kit/chart.css">
+<link rel="stylesheet" href="kit/motion.css">
+<link rel="stylesheet" href="demo/demo.css">
+<link rel="stylesheet" href="demo/trade.css">
+<link rel="stylesheet" href="demo/wallet.css">
+<link rel="stylesheet" href="demo/allocation.css">
+<link rel="stylesheet" href="demo/swap.css">
+<link rel="stylesheet" href="demo/nets.css">
+<link rel="stylesheet" href="demo/exchange.css">
+<link rel="stylesheet" href="demo/cheques.css">
+<link rel="stylesheet" href="demo/invoices.css">
+<link rel="stylesheet" href="demo/manage.css">
+<link rel="stylesheet" href="demo/welcome.css">
+<link rel="stylesheet" href="demo/bonus.css">
+<link rel="stylesheet" href="kit/compat.css">
+<link rel="stylesheet" href="kit/fonts/inter.css">
+<script src="kit/compat.js"></script>
+<script src="kit/i18n.js"></script>
+<script src="kit/core.js"></script>
+</head>
+<body>
+<div class="page">
+  <div class="device">
+    <div class="tg-header" aria-hidden="true">
+      <span class="tg-header-close" data-i18n="nav.close">Закрыть</span>
+      <span class="tg-header-title"><b class="tg-header-name"><svg viewBox="0 0 512 512" fill="currentColor" width="15" height="15" aria-hidden="true"><path d="M236 454.35V179.65A6.5 6.5 0 0 0 229.19 173.16A144 144 0 0 0 229.19 460.84A6.5 6.5 0 0 0 236 454.35ZM276 57.65V332.35A6.5 6.5 0 0 0 282.81 338.84A144 144 0 0 0 282.81 51.16A6.5 6.5 0 0 0 276 57.65Z"/></svg>DevpoolTrading</b><span data-i18n="stage.miniApp">мини-приложение</span></span>
+      <span class="tg-header-more" id="tg-more"></span>
+    </div>
+    <div class="app" id="app">
+      <div class="app-stage" id="stage">
+        <div id="panes" style="position:absolute;inset:0"></div>
+        <nav id="tabbar"></nav>
+      </div>
+      <div class="toast-host" id="toast"></div>
+    </div>
+  </div>
+  <aside class="stage-panel" id="stage-panel" data-i18n-aria="stage.aria" aria-label="Настройки просмотра">
+    <h1 aria-label="DevpoolTrading"><svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 27.05 793.24 94.04"><path d="M32.91 119.53V56.84A1.52 1.52 0 0 0 31.31 55.32A32.91 32.91 0 0 0 31.31 121.05A1.52 1.52 0 0 0 32.91 119.53ZM42.96 28.81V91.5A1.52 1.52 0 0 0 44.56 93.02A32.91 32.91 0 0 0 44.56 27.28A1.52 1.52 0 0 0 42.96 28.81Z"/><path d="M140.7 100H122.34V88.95H139.97Q147.88 88.95 153.04 85.97Q158.2 82.99 160.73 77.3Q163.25 71.61 163.25 63.55Q163.25 55.51 160.74 49.87Q158.23 44.23 153.15 41.26Q148.07 38.29 140.38 38.29H121.98V27.25H141.22Q152.04 27.25 159.9 31.64Q167.77 36.04 172.02 44.19Q176.26 52.34 176.26 63.55Q176.26 74.8 172 82.97Q167.74 91.14 159.8 95.57Q151.85 100 140.7 100ZM129.03 27.25V100H116.09V27.25ZM206.42 101.17Q198.69 101.17 193.04 97.71Q187.38 94.26 184.31 88.17Q181.24 82.08 181.24 74.28Q181.24 66.4 184.4 60.31Q187.55 54.21 193.12 50.74Q198.68 47.27 205.9 47.27Q211.48 47.27 216.03 49.21Q220.57 51.15 223.84 54.74Q227.11 58.33 228.86 63.24Q230.62 68.15 230.62 74.09V77.44H186.13V68.94H224.46L218.94 71.22Q218.94 66.86 217.37 63.68Q215.8 60.5 212.92 58.77Q210.05 57.04 206.1 57.04Q202.19 57.04 199.33 58.77Q196.46 60.5 194.89 63.68Q193.31 66.86 193.31 71.22V76.58Q193.31 81 194.88 84.37Q196.45 87.73 199.45 89.6Q202.44 91.47 206.7 91.47Q209.8 91.47 212.19 90.55Q214.57 89.62 216.17 87.94Q217.76 86.27 218.46 84.06H229.99Q229.03 89.12 225.73 92.96Q222.42 96.81 217.44 98.99Q212.46 101.17 206.42 101.17ZM251.37 100 231.98 48.44H245.04L254.43 75.31Q255.88 79.59 257.2 83.86Q258.51 88.13 259.78 92.41H256.83Q258.12 88.13 259.4 83.86Q260.68 79.59 262.08 75.31L271.33 48.44H284.23L264.83 100ZM288.76 120.41V48.44H300.91V55.63H301.06Q302.67 52.88 305.04 51.05Q307.41 49.22 310.39 48.31Q313.36 47.39 316.68 47.39Q323.33 47.39 328.34 50.78Q333.34 54.16 336.14 60.2Q338.94 66.24 338.94 74.18Q338.94 82.2 336.17 88.25Q333.39 94.29 328.38 97.67Q323.37 101.05 316.61 101.05Q313.26 101.05 310.37 100.07Q307.48 99.09 305.16 97.14Q302.85 95.18 301.24 92.26H301.11V120.41ZM313.71 90.75Q317.55 90.75 320.41 88.82Q323.26 86.9 324.86 83.2Q326.46 79.5 326.46 74.18Q326.46 68.84 324.86 65.16Q323.26 61.47 320.41 59.55Q317.55 57.62 313.71 57.62Q309.7 57.62 306.7 59.67Q303.7 61.72 302.06 65.44Q300.42 69.15 300.42 74.18Q300.42 79.19 302.06 82.92Q303.7 86.65 306.7 88.7Q309.7 90.75 313.71 90.75ZM369.1 101.17Q361.53 101.17 355.79 97.78Q350.05 94.39 346.86 88.34Q343.66 82.28 343.66 74.28Q343.66 66.25 346.86 60.17Q350.05 54.09 355.79 50.68Q361.53 47.27 369.1 47.27Q376.72 47.27 382.43 50.68Q388.14 54.09 391.34 60.17Q394.54 66.25 394.54 74.28Q394.54 82.28 391.34 88.34Q388.14 94.39 382.43 97.78Q376.72 101.17 369.1 101.17ZM369.1 90.88Q373.07 90.88 375.97 88.87Q378.88 86.86 380.47 83.13Q382.06 79.39 382.06 74.28Q382.06 69.09 380.47 65.37Q378.88 61.64 375.97 59.6Q373.07 57.56 369.1 57.56Q365.18 57.56 362.25 59.58Q359.32 61.61 357.73 65.35Q356.14 69.09 356.14 74.28Q356.14 79.42 357.73 83.14Q359.32 86.86 362.24 88.87Q365.15 90.88 369.1 90.88ZM424.68 101.17Q417.11 101.17 411.38 97.78Q405.64 94.39 402.44 88.34Q399.24 82.28 399.24 74.28Q399.24 66.25 402.44 60.17Q405.64 54.09 411.38 50.68Q417.11 47.27 424.68 47.27Q432.3 47.27 438.01 50.68Q443.73 54.09 446.92 60.17Q450.12 66.25 450.12 74.28Q450.12 82.28 446.92 88.34Q443.73 94.39 438.01 97.78Q432.3 101.17 424.68 101.17ZM424.68 90.88Q428.65 90.88 431.56 88.87Q434.46 86.86 436.05 83.13Q437.64 79.39 437.64 74.28Q437.64 69.09 436.05 65.37Q434.46 61.64 431.56 59.6Q428.65 57.56 424.68 57.56Q420.76 57.56 417.83 59.58Q414.9 61.61 413.31 65.35Q411.72 69.09 411.72 74.28Q411.72 79.42 413.31 83.14Q414.9 86.86 417.82 88.87Q420.73 90.88 424.68 90.88ZM473.12 100Q464.87 100 461.24 96.95Q457.62 93.9 457.62 86.83V27.25H469.96V85.6Q469.96 88.29 470.97 89.28Q471.97 90.27 474.64 90.27Q475.08 90.27 475.67 90.27Q476.27 90.27 476.69 90.27V100Q475.81 100 474.91 100Q474.01 100 473.12 100ZM481.84 35.06V27.25H537.99V35.06H514.36V100H505.57V35.06ZM539.59 100V48.44H547.5V56.54H547.69Q549.11 52.54 552.18 50.1Q555.26 47.66 560.09 47.66Q561.22 47.66 562.17 47.75Q563.12 47.85 563.61 47.95V56.25Q563.12 56.1 561.73 55.88Q560.34 55.66 558.53 55.66Q555.7 55.66 553.26 56.98Q550.82 58.3 549.35 61.08Q547.89 63.87 547.89 68.26V100ZM585.94 100.78Q580.81 100.78 576.76 99.02Q572.7 97.27 570.33 93.77Q567.97 90.28 567.97 85.16Q567.97 80.71 569.7 77.93Q571.43 75.15 574.34 73.56Q577.24 71.97 580.93 71.14Q584.62 70.31 588.47 69.82Q593.41 69.14 596.24 68.8Q599.07 68.46 600.27 67.68Q601.46 66.89 601.46 64.94V64.45Q601.46 61.62 600.12 59.45Q598.78 57.28 596.21 56.03Q593.65 54.79 590.04 54.79Q586.47 54.79 583.71 55.98Q580.95 57.18 579.32 59.23Q577.68 61.28 577.49 63.87H569.04Q569.28 59.13 571.97 55.44Q574.66 51.76 579.29 49.61Q583.93 47.46 590.04 47.46Q594.53 47.46 598.17 48.68Q601.8 49.9 604.37 52.15Q606.93 54.39 608.3 57.52Q609.67 60.64 609.67 64.45V100H601.46V92.68H601.27Q600.34 94.53 598.53 96.41Q596.73 98.29 593.67 99.54Q590.62 100.78 585.94 100.78ZM587.11 93.36Q592.19 93.36 595.36 91.53Q598.53 89.7 600 86.77Q601.46 83.84 601.46 80.47V74.02Q600.97 74.46 599.68 74.85Q598.39 75.24 596.51 75.61Q594.63 75.98 592.45 76.32Q590.28 76.66 588.08 76.95Q585.11 77.34 582.44 78.3Q579.78 79.25 578.12 80.98Q576.46 82.71 576.46 85.64Q576.46 88.04 577.76 89.77Q579.05 91.5 581.44 92.43Q583.84 93.36 587.11 93.36ZM640.5 100.98Q633.81 100.98 628.75 97.58Q623.7 94.19 620.92 88.16Q618.13 82.13 618.13 74.22Q618.13 66.26 620.92 60.23Q623.7 54.2 628.75 50.83Q633.81 47.46 640.5 47.46Q643.87 47.46 646.92 48.41Q649.97 49.37 652.46 51.27Q654.95 53.17 656.61 56.05H656.71V27.25H665.01V100H656.9V92.19H656.81Q654.95 95.17 652.41 97.12Q649.87 99.07 646.87 100.02Q643.87 100.98 640.5 100.98ZM641.77 93.51Q646.55 93.51 650.07 91.11Q653.58 88.72 655.49 84.38Q657.39 80.03 657.39 74.22Q657.39 68.36 655.49 64.01Q653.58 59.67 650.07 57.28Q646.55 54.88 641.77 54.88Q637.32 54.88 633.88 57.08Q630.44 59.28 628.49 63.57Q626.53 67.87 626.53 74.22Q626.53 80.52 628.49 84.81Q630.44 89.11 633.88 91.31Q637.32 93.51 641.77 93.51ZM676.11 100V48.44H684.41V100ZM680.26 38.38Q677.92 38.38 676.26 36.71Q674.6 35.05 674.6 32.71Q674.6 30.37 676.26 28.71Q677.92 27.05 680.24 27.05Q682.61 27.05 684.27 28.71Q685.93 30.37 685.93 32.74Q685.93 35.06 684.26 36.72Q682.6 38.38 680.26 38.38ZM703.82 69.82V100H695.52V48.44H703.62V60.94H701.28Q703.82 53.96 708.34 50.71Q712.85 47.46 718.96 47.46Q724.18 47.46 728.48 49.73Q732.77 52 735.34 56.54Q737.9 61.08 737.9 67.97V100H729.6V68.55Q729.6 61.87 726.4 58.47Q723.2 55.08 717.39 55.08Q713.63 55.08 710.56 56.59Q707.48 58.11 705.65 61.35Q703.82 64.6 703.82 69.82ZM770.59 121.09Q764.78 121.09 760.11 119.31Q755.45 117.53 752.5 114.04Q749.54 110.55 748.91 105.47H757.4Q758.14 108.25 759.99 110.08Q761.85 111.91 764.56 112.84Q767.27 113.77 770.59 113.77Q777.33 113.77 781.18 110.18Q785.04 106.59 785.04 100V92.19H784.99Q783.09 95.17 780.6 97.12Q778.11 99.07 775.13 100.02Q772.15 100.98 768.73 100.98Q762.04 100.98 756.99 97.58Q751.94 94.19 749.15 88.16Q746.37 82.13 746.37 74.22Q746.37 66.26 749.15 60.23Q751.94 54.2 756.99 50.83Q762.04 47.46 768.73 47.46Q772.1 47.46 775.15 48.39Q778.21 49.32 780.77 51.32Q783.33 53.32 785.09 56.49H785.14V48.44H793.24V100Q793.24 107.62 790.1 112.26Q786.95 116.89 781.77 118.99Q776.59 121.09 770.59 121.09ZM770 93.51Q774.79 93.51 778.3 91.11Q781.82 88.72 783.72 84.38Q785.63 80.03 785.63 74.22Q785.63 68.36 783.72 64.01Q781.82 59.67 778.3 57.28Q774.79 54.88 770 54.88Q765.56 54.88 762.12 57.08Q758.67 59.28 756.72 63.57Q754.77 67.87 754.77 74.22Q754.77 80.52 756.72 84.81Q758.67 89.11 762.12 91.31Q765.56 93.51 770 93.51Z"/></svg></h1>
+    <div class="stage-group"><span data-i18n="stage.width">Ширина</span><div id="stage-width"></div></div>
+    <div class="stage-group"><span data-i18n="theme.aria">Тема</span><div id="stage-theme"></div></div>
+    <div class="stage-group"><span data-i18n="profile.tgColors">Цвета Telegram</span><div id="stage-preset"></div></div>
+  </aside>
+</div>
+<script src="kit/icons.js" defer></script>
+<script src="kit/crypto-icons.js" defer></script>
+<script src="kit/motion.js" defer></script>
+<script src="kit/nav.js" defer></script>
+<script src="kit/sliders.js" defer></script>
+<script src="kit/cards.js" defer></script>
+<script src="kit/chart.js" defer></script>
+<script src="kit/market.js" defer></script>
+<script src="kit/ton.js" defer></script>
+<script src="kit/feeConfig.js" defer></script>
+<script src="kit/swapAudit.js" defer></script>
+<script src="kit/p2pAudit.js" defer></script>
+<script src="kit/payoutAudit.js" defer></script>
+<script src="kit/chequeAudit.js" defer></script>
+<script src="kit/gaslessAudit.js" defer></script>
+<script src="kit/deviceStore.js" defer></script>
+<script src="kit/wallet.js" defer></script>
+<script src="kit/evm.js" defer></script>
+<script src="kit/sol.js" defer></script>
+<script src="kit/tron.js" defer></script>
+<script src="kit/cheques.js" defer></script>
+<script src="demo/logos.js" defer></script>
+<script src="demo/data.js" defer></script>
+<script src="demo/favorites.js" defer></script>
+<script src="demo/alerts.js" defer></script>
+<script src="demo/trade.js" defer></script>
+<script src="demo/wallet.js" defer></script>
+<script src="demo/book.js" defer></script>
+<script src="demo/cheques.js" defer></script>
+<script src="demo/invoices.js" defer></script>
+<script src="demo/walletSetup.js" defer></script>
+<script src="demo/walletList.js" defer></script>
+<script src="demo/cost.js" defer></script>
+<script src="demo/swap.js" defer></script>
+<script src="demo/orders.js" defer></script>
+<script src="demo/nets.js" defer></script>
+<script src="demo/allocation.js" defer></script>
+<script src="demo/payouts.js" defer></script>
+<script src="demo/fees.js" defer></script>
+<script src="demo/exchange.js" defer></script>
+<script src="demo/welcome.js" defer></script>
+<template id="lazy-p2p">
+<link rel="stylesheet" href="demo/p2p.css">
+<script src="kit/bankLogos.js" defer></script>
+<script src="demo/p2p-deal.js" defer></script>
+<script src="demo/p2p-me.js" defer></script>
+<script src="demo/p2p-demo.js" defer></script>
+<script src="demo/p2p.js" defer></script>
+</template>
+<script src="demo/manage.js" defer></script>
+<script src="demo/bonus.js" defer></script>
+<script src="demo/app.js" defer></script>
+<script src="kit/tg-more.js" defer></script>
+</body>
+</html>

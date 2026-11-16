@@ -1,0 +1,85 @@
+.bonus-screen .screen-body {
+  padding-top: var(--sp-8, 8px);
+}
+.bonus-screen .cell[hidden],
+.bonus-money[hidden],
+.bonus-invite-foot > .invite-link[hidden] {
+  display: none;
+}
+.bonus-row {
+  padding-block: var(--sp-12, 12px);
+}
+.bonus-state {
+  align-self: flex-start;
+  margin-top: var(--sp-8, 8px);
+}
+.bonus-free.is-ready .bonus-state {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.bonus-free:not(.is-ready) .bonus-chevron {
+  display: none;
+}
+.bonus-free:not(.is-ready) .bonus-row {
+  cursor: default;
+}
+.bonus-free:not(.is-ready) .bonus-row::after {
+  display: none;
+}
+.bonus-dim {
+  color: var(--hint);
+}
+.bonus-skel {
+  display: inline-block;
+  width: 28px;
+  height: 12px;
+  border-radius: 4px;
+  vertical-align: -1px;
+}
+.bonus-invite-foot > .invite-link .bonus-skel {
+  width: 72%;
+}
+.bonus-invite-foot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-12, 12px);
+  padding: var(--sp-4, 4px) var(--sp-16, 16px) var(--sp-16, 16px);
+}
+.bonus-invite-foot > .invite-link {
+  margin-top: 0;
+  background: var(--bg);
+}
+.bonus-money {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-8, 8px);
+}
+.tag.bonus-tag {
+  flex: none;
+  align-self: center;
+  margin-left: var(--sp-8, 8px);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.tag.bonus-tag[hidden] {
+  display: none;
+}
+.sw-fee-ours > .bonus-tag {
+  margin-left: 0;
+  margin-right: auto;
+}
+.fg-link {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.fg-link:active {
+  opacity: .6;
+}

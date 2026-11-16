@@ -1,0 +1,237 @@
+.alloc {
+  position: relative;
+  padding-right: 36px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.alloc.press:active {
+  transform: scale(.98);
+}
+.alloc-chevron {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  margin: -8px 0 0;
+}
+:root {
+  --al-other: #d3e3fb;
+}
+:root[data-theme=dark] {
+  --al-other: #34476a;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme=light]) {
+    --al-other: #34476a;
+  }
+}
+.al-sheet {
+  gap: var(--sp-24, 24px);
+  padding-top: var(--sp-8, 8px);
+}
+.al-probe {
+  position: absolute;
+  width: 0;
+  height: 0;
+  visibility: hidden;
+}
+.al-ring {
+  position: relative;
+  flex: none;
+  width: 54%;
+  max-width: 204px;
+  aspect-ratio: 1;
+  margin: 2px auto 0;
+  container-type: inline-size;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.al-ring > svg {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.al-track {
+  stroke: var(--fill-strong);
+}
+.al-art,
+.al-track-art {
+  will-change: transform, opacity;
+}
+.al-art {
+  transition: opacity .09s ease;
+}
+.al-ring.is-out .al-art {
+  opacity: 0;
+}
+.al-fade {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-24, 24px);
+  transition: opacity .2s ease;
+}
+.al-fade.is-out {
+  opacity: 0;
+  transition-duration: .09s;
+}
+.al-center {
+  position: absolute;
+  inset: 15%;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+.al-c {
+  grid-area: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-width: 0;
+  max-width: 100%;
+}
+.al-value {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -.025em;
+  margin-top: 1px;
+  font-size: 26px;
+  font-size: 11.6cqw;
+}
+.al-value[data-len=m] {
+  font-size: 23px;
+  font-size: 10cqw;
+}
+.al-value[data-len=l] {
+  font-size: 19px;
+  font-size: 8.4cqw;
+}
+.al-value[data-len=xl] {
+  font-size: 16px;
+  font-size: 7cqw;
+}
+.al-logo {
+  display: block;
+  margin-bottom: 5px;
+}
+.al-chosen-share {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-size: 11.6cqw;
+  font-weight: 700;
+  letter-spacing: -.025em;
+}
+.al-chosen-usd {
+  font-size: 13px;
+  line-height: 17px;
+  color: var(--hint);
+  margin-top: 1px;
+}
+.al-chosen-usd .roll-col {
+  transition-duration: .36s;
+}
+.al-chosen-share .roll-col {
+  transition-duration: .36s;
+}
+.al-tile {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: var(--s);
+  height: var(--s);
+  border-radius: 50%;
+  background: var(--c);
+  color: #fff;
+}
+.al-tile--other {
+  background: var(--fill-strong);
+  color: var(--hint);
+}
+.al-row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 56px;
+  min-height: 56px;
+  gap: var(--sp-12, 12px);
+  transition: background-color .24s ease;
+}
+.al-sheet .al-rows > .al-row {
+  padding: 0 var(--sp-16, 16px);
+}
+.al-row:nth-child(-n+6) {
+  content-visibility: visible;
+}
+.al-row.is-on {
+  background: var(--fill);
+  background: color-mix(in srgb, var(--c) 14%, transparent);
+}
+.al-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--c);
+}
+.al-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 17px;
+  line-height: 22px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.al-share {
+  flex: none;
+  font-size: 17px;
+  line-height: 22px;
+  font-weight: 600;
+  letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.al-hide {
+  gap: var(--sp-12, 12px);
+  padding: 0 var(--sp-16, 16px);
+}
+.al-hide-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (prefers-reduced-motion: reduce) {
+  .al-art,
+  .al-fade {
+    transition: none;
+  }
+}
+.market-pending .alloc {
+  pointer-events: none;
+  animation: ck-breathe 1.5s ease-in-out infinite;
+}
+.market-pending .alloc > * {
+  visibility: hidden;
+}
+.market-reveal .alloc > * {
+  animation: market-in .32s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .market-reveal .alloc > * {
+    animation: none;
+  }
+}
+@container app (max-width: 350px) {
+  .al-ring {
+    width: 60%;
+  }
+  .al-name,
+  .al-share {
+    font-size: 16px;
+  }
+}

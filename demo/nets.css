@@ -1,0 +1,71 @@
+.xn-term > span {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.xn-val {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  line-height: 19px;
+  font-weight: 500;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+span.sw-from {
+  padding-right: 12px;
+}
+.xn-offer {
+  width: 100%;
+  height: 56px;
+  min-height: 56px;
+  border-radius: 16px;
+}
+.xn-offer[hidden] {
+  display: none;
+}
+.tk-swipe[hidden] {
+  display: none;
+}
+.sw-fee .xn-val {
+  font-size: 15px;
+  line-height: 20px;
+}
+.sw-fee .xn-term > span {
+  flex: 0 1 auto;
+  color: var(--hint);
+}
+.xn-net {
+  position: relative;
+  display: flex;
+  align-self: flex-start;
+  max-width: 100%;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 17px;
+  color: var(--hint);
+  text-align: left;
+  transition: opacity .2s ease;
+}
+.tk-sheet-name .xn-net > span {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+.xn-net::after {
+  content: "";
+  position: absolute;
+  inset: -12px -8px;
+}
+.xn-net:active {
+  opacity: .55;
+}

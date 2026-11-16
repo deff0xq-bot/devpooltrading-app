@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675">
+  <!-- The gift card of a cheque: flat brand blue and the kit's gift glyph (kit/icons.js). The JPGs beside it are made from this file. -->
+  <rect width="1200" height="675" fill="#2f7cf6"/>
+  <circle cx="600" cy="337.5" r="190" fill="#ffffff" fill-opacity="0.16"/>
+  <g transform="translate(600 337.5) scale(10.5) translate(-12 -12)" fill="none" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3.4" y="7.8" width="17.2" height="4.2" rx="1.3"/>
+    <path d="M5 12v6.4a2.2 2.2 0 0 0 2.2 2.2h9.6a2.2 2.2 0 0 0 2.2-2.2V12M12 7.8v12.8"/>
+    <path d="M12 7.8S11 3.4 8 3.4a2.2 2.2 0 0 0 0 4.4zM12 7.8s1-4.4 4-4.4a2.2 2.2 0 0 1 0 4.4z"/>
+  </g>
+</svg>

@@ -1,0 +1,31 @@
+:root {
+  --motion-soft: cubic-bezier(.22, 1, .36, 1);
+  --motion-soft-ms: 380ms;
+  --motion-spring: cubic-bezier(.22, 1, .36, 1);
+  --motion-spring-ms: 460ms;
+  --motion-sheet: cubic-bezier(.22, 1, .36, 1);
+  --motion-sheet-ms: 520ms;
+}
+@supports (transition-timing-function: linear(0, 1)) {
+  :root {
+    --motion-spring: cubic-bezier(.22, 1, .36, 1);
+    --motion-sheet: cubic-bezier(.22, 1, .36, 1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-soft: ease-out;
+    --motion-soft-ms: 120ms;
+    --motion-spring: ease-out;
+    --motion-spring-ms: 120ms;
+    --motion-sheet: ease-out;
+    --motion-sheet-ms: 120ms;
+  }
+}
+html.ck-motion [role=tabpanel] {
+  transition: none;
+}
+html.motion-launch #panes,
+html.motion-launch #tabbar {
+  opacity: 0 !important;
+}

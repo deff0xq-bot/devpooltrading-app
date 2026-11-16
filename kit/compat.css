@@ -1,0 +1,271 @@
+.ck-unsupported .page {
+  display: none !important;
+}
+#ck-unsupported {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 28px;
+  text-align: center;
+  background: #f2f2f7;
+  color: #000;
+  font:
+    400 16px/22px -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
+}
+#ck-unsupported h2 {
+  margin: 0 0 10px;
+  max-width: 340px;
+  font-size: 20px;
+  line-height: 25px;
+  font-weight: 700;
+}
+#ck-unsupported p {
+  margin: 0;
+  max-width: 340px;
+  color: rgba(60, 60, 67, .75);
+}
+@media (prefers-color-scheme: dark) {
+  #ck-unsupported {
+    background: #000;
+    color: #fff;
+  }
+  #ck-unsupported p {
+    color: rgba(235, 235, 245, .65);
+  }
+}
+@supports not (color: color-mix(in srgb, red 50%, blue)) {
+  .tag--warn {
+    background: var(--fill);
+  }
+  :root {
+    --avatar-c1: var(--accent);
+    --accent-soft: var(--fill);
+  }
+  :root {
+    --card-press: var(--fill-strong);
+  }
+  .coin--tile {
+    background:
+      linear-gradient(
+        180deg,
+        rgba(255, 255, 255, .18),
+        rgba(255, 255, 255, 0)),
+      var(--c);
+  }
+  .coin--neutral {
+    background: var(--fill-strong);
+  }
+  .wallet-card-mark {
+    background: var(--fill);
+  }
+  .al-row.is-on {
+    background: var(--fill);
+  }
+  .sw-spin {
+    border: 3.5px solid var(--fill-strong);
+    border-top-color: var(--accent);
+  }
+  .tk-net.is-on .tk-tile {
+    background: rgba(128, 128, 128, .3);
+  }
+}
+@supports not selector(:has(a)) {
+  .screen-pad.ck-has-hidden-balance ~ * .asset-right > *,
+  .screen-pad.ck-has-hidden-balance ~ * .wallet-row-sub > span,
+  .screen-pad.ck-has-hidden-balance ~ * .alloc-legend b {
+    color: transparent;
+    text-shadow: 0 0 9px var(--hint);
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .coin--stack.ck-has-logo {
+    background: none;
+  }
+  .coin--stack.ck-has-logo i {
+    visibility: hidden;
+  }
+  .tk-logo.ck-has-logo .tk-tile {
+    color: transparent;
+  }
+  .sheet-body.ck-has-dock {
+    padding-bottom: 14px;
+  }
+  .sheet-body.sw-order.ck-has-dock {
+    padding-bottom: 4px;
+  }
+  .sw-order.is-squeezed .sw-term.ck-has-slip {
+    display: none;
+  }
+}
+@media (max-width: 359px) {
+  @supports not selector(:has(a)) {
+    .sw-terms .sw-term.ck-has-out,
+    .sw-rows .summary-row.ck-has-worth {
+      gap: 8px;
+    }
+  }
+}
+@supports not (container-type: inline-size) {
+  .carousel--cover .carousel-track > * {
+    width: calc(var(--ck-cqw, 100vw) - 2 * var(--gutter));
+  }
+  .item-wide {
+    width: calc(var(--ck-cqw, 100vw) - 44px);
+  }
+}
+@media (max-width: 375px) {
+  @supports not (container-type: inline-size) {
+    .tk-sort .seg-btn {
+      font-size: 12.5px;
+    }
+  }
+}
+@media (max-width: 350px) {
+  @supports not (container-type: inline-size) {
+    .market-spark {
+      display: none;
+    }
+    .seg-btn {
+      font-size: 12.5px;
+    }
+    .seg--large .seg-btn {
+      font-size: 16px;
+    }
+    .balance-total {
+      font-size: 32px;
+    }
+    .coin-card {
+      width: 146px;
+    }
+    .tabbar {
+      left: 6px;
+      right: 6px;
+    }
+    .tabbar-face {
+      font-size: 10px;
+    }
+    .cell {
+      gap: 10px;
+    }
+    .cell-title,
+    .cell-value {
+      font-size: 15px;
+    }
+    .stats dd {
+      font-size: 13px;
+    }
+    .stats dt {
+      font-size: 11px;
+    }
+    .screen {
+      --large-size: 30px;
+      --large-line: 37px;
+      --hero-size: 22px;
+      --hero-line: 28px;
+    }
+    .balance-address {
+      padding-inline: 8px;
+      font-size: 12px;
+    }
+    .icon-grid {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+    .tile-palette {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+    .detail-price {
+      font-size: 32px;
+    }
+    .action-disc {
+      width: 48px;
+      height: 48px;
+    }
+    .market-name .tk-tag:not(.tag--down) {
+      display: none;
+    }
+    dd .tk-copy {
+      font-size: 14px;
+    }
+    .tk-net {
+      font-size: 13px;
+    }
+    .tk-sort .seg-btn {
+      font-size: 11.5px;
+    }
+    .sheet-dock .swipe-text {
+      font-size: 15px;
+    }
+    .sheet-dock .swipe-text,
+    .sheet-dock .swipe-sheen,
+    .sheet-dock .swipe-sheen-text {
+      padding-inline: 60px 6px;
+    }
+    .tk-row {
+      gap: 10px;
+    }
+    .tk-order {
+      gap: 10px;
+    }
+    .tk-sheet-roll {
+      font-size: 15px;
+    }
+    .w-amt {
+      font-size: 19px;
+    }
+    .w-tx-title,
+    .w-tx-amount {
+      font-size: 14px;
+    }
+    .w-step ~ .sheet-dock .swipe-text {
+      font-size: 14px;
+    }
+    .w-addr {
+      font-size: 13px;
+      line-height: 19px;
+      padding-block: 11px;
+    }
+    .w-qr {
+      width: 148px;
+      height: 148px;
+    }
+  }
+}
+@media (max-width: 344px) {
+  @supports not (container-type: inline-size) {
+    .navbar-row.ck-has-two-buttons .detail-title > .coin {
+      display: none;
+    }
+  }
+  @supports not (container-type: inline-size) {
+    @supports selector(:has(a)) {
+      .navbar-row:has(> .navbar-trail > .navbtn + .navbtn) .detail-title > .coin {
+        display: none;
+      }
+    }
+  }
+}
+@supports not (translate: 0) {
+  .or-unit {
+    transform: translateY(-50%);
+  }
+  .w-flip {
+    transition: transform .4s var(--spring);
+  }
+  .w-flip:active {
+    transform: scale(.9);
+    transition-duration: .1s;
+  }
+}

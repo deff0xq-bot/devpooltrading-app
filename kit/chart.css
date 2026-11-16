@@ -1,0 +1,526 @@
+.chart {
+  position: relative;
+  height: clamp(190px, 34vh, 300px);
+  touch-action: pan-y;
+  cursor: crosshair;
+  contain: layout style;
+}
+.chart.is-up {
+  color: var(--green);
+}
+.chart.is-down {
+  color: var(--red);
+}
+.chart-plot {
+  position: absolute;
+  inset: 0;
+}
+.chart.is-flat {
+  color: var(--hint);
+}
+.chart.is-flat .chart-line {
+  stroke: var(--hint);
+}
+.chart.is-flat .chart-stop {
+  stop-color: var(--hint);
+}
+.chart-svg {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  overflow: visible;
+  visibility: hidden;
+}
+.chart.is-started .chart-svg {
+  visibility: visible;
+}
+.chart-line {
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.chart-tone--up .chart-line {
+  stroke: var(--green);
+}
+.chart-tone--down .chart-line {
+  stroke: var(--red);
+}
+.chart-stop {
+  stop-opacity: .24;
+}
+.chart-stop--up {
+  stop-color: var(--green);
+}
+.chart-stop--down {
+  stop-color: var(--red);
+}
+.chart-stop--end {
+  stop-opacity: 0;
+}
+.chart-end {
+  position: absolute;
+  left: -3.5px;
+  top: -3.5px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0;
+  will-change: transform;
+  transition: opacity .16s ease, background-color .32s ease;
+  pointer-events: none;
+}
+.chart.is-started .chart-end {
+  opacity: 1;
+}
+.chart.is-springing .chart-end {
+  opacity: 0;
+}
+.chart-end::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: inherit;
+  animation: spark-pulse 2.4s var(--ease-out) .4s both;
+}
+.chart-end.is-pulse-a::after {
+  animation: chart-pulse-a 2.4s var(--ease-out) both;
+}
+.chart-end.is-pulse-b::after {
+  animation: chart-pulse-b 2.4s var(--ease-out) both;
+}
+@keyframes chart-pulse-a {
+  from {
+    transform: scale(1);
+    opacity: .5;
+  }
+  70%, to {
+    transform: scale(3);
+    opacity: 0;
+  }
+}
+@keyframes chart-pulse-b {
+  from {
+    transform: scale(1);
+    opacity: .5;
+  }
+  70%, to {
+    transform: scale(3);
+    opacity: 0;
+  }
+}
+.app-stage.is-receded .chart-end::after {
+  animation-play-state: paused;
+}
+.chart-tag {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 500;
+  color: var(--hint);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  opacity: 0;
+  will-change: transform;
+  transition: opacity .24s ease;
+  pointer-events: none;
+}
+.chart.is-drawn .chart-tag {
+  opacity: 1;
+}
+.chart.is-drawn.is-scrubbing .chart-tag {
+  opacity: 0;
+}
+.chart-tag .roll-d,
+.chart-tag .roll-c,
+.chart-tag .roll-col > span {
+  height: 14px;
+  line-height: 14px;
+}
+.chart-tag .roll-col {
+  transition-duration: .5s;
+}
+.chart-levels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .24s ease;
+}
+.chart.is-drawn .chart-levels {
+  opacity: 1;
+}
+.chart.is-rough .chart-levels {
+  opacity: 0;
+}
+.chart-level {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  color: var(--hint);
+}
+.chart-level[data-kind=stop] {
+  color: var(--red);
+}
+.chart-level[data-kind=take] {
+  color: var(--green);
+}
+.chart-level[data-kind=entry] {
+  color: var(--link);
+}
+.chart-level-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      currentColor 0 3px,
+      transparent 3px 6px);
+  opacity: .7;
+  will-change: transform;
+  transition: opacity .2s ease;
+}
+.chart-level:is(.is-above, .is-below) .chart-level-line {
+  opacity: 0;
+}
+.chart-level-tag {
+  position: absolute;
+  left: var(--gutter);
+  top: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 17px;
+  padding-inline: 5px;
+  border-radius: 6px;
+  font-size: 11px;
+  line-height: 17px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  will-change: transform;
+  transition: opacity .16s ease;
+  background: linear-gradient(var(--fill), var(--fill)), var(--bg);
+}
+.chart-level[data-kind=stop] .chart-level-tag {
+  background: linear-gradient(var(--red-soft), var(--red-soft)), var(--bg);
+}
+.chart-level[data-kind=take] .chart-level-tag {
+  background: linear-gradient(var(--green-soft), var(--green-soft)), var(--bg);
+}
+.chart-level[data-kind=entry] .chart-level-tag {
+  background: var(--accent-soft);
+}
+.chart-level-arrow {
+  display: none;
+}
+.chart-level:is(.is-above, .is-below) .chart-level-arrow {
+  display: inline-flex;
+}
+.chart-level-arrow .icon {
+  stroke-width: 3;
+}
+.chart-level.is-below .chart-level-arrow .icon {
+  transform: rotate(180deg);
+}
+.chart.is-scrubbing .chart-level-tag {
+  opacity: 0;
+}
+.chart-level.is-quiet .chart-level-tag {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .3s ease, visibility 0s .3s;
+}
+.chart .chart-level.is-quiet.is-told .chart-level-tag {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity .16s ease;
+}
+.chart-level-tick {
+  position: absolute;
+  right: var(--gutter);
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 10px;
+  opacity: 0;
+  will-change: transform;
+  transition: opacity .2s ease;
+}
+.chart-level-dash {
+  width: 15px;
+  height: 1px;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      currentColor 0 3px,
+      transparent 3px 6px);
+}
+.chart-level.is-quiet:is([data-kind=stop], [data-kind=take]):is(.is-above, .is-below) .chart-level-tick {
+  opacity: 1;
+}
+.chart.is-scrubbing .chart-level.is-above .chart-level-tick {
+  opacity: 0;
+}
+.chart-cursor {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  opacity: 0;
+  transition: opacity .16s ease;
+  pointer-events: none;
+}
+.chart.is-scrubbing .chart-cursor {
+  opacity: 1;
+}
+.chart-cursor-line {
+  position: absolute;
+  top: 20px;
+  bottom: 0;
+  left: -.5px;
+  width: 1px;
+  background: var(--hint);
+  opacity: .6;
+}
+.chart-cursor-dot {
+  position: absolute;
+  left: -6.5px;
+  top: -6.5px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 3px var(--bg);
+  transition: background-color .32s ease;
+}
+.chart-time {
+  position: absolute;
+  left: 0;
+  top: 2px;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  color: var(--hint);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity .16s ease;
+  pointer-events: none;
+}
+.chart.is-scrubbing .chart-time {
+  opacity: 1;
+}
+.chart-time.is-empty {
+  visibility: hidden;
+}
+.chart-time .roll-d,
+.chart-time .roll-c,
+.chart-time .roll-col > span {
+  height: 16px;
+  line-height: 16px;
+}
+.chart-time .roll-col {
+  transition-duration: .24s;
+}
+.chart-note {
+  position: absolute;
+  left: var(--gutter);
+  top: 2px;
+  padding-inline: 6px;
+  margin-left: -6px;
+  border-radius: 8px;
+  background: var(--bg);
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--hint);
+  opacity: 0;
+  transition: opacity .24s ease;
+  pointer-events: none;
+}
+.chart.is-failed .chart-note {
+  opacity: 1;
+}
+.chart.is-rough .chart-tag {
+  opacity: 0;
+}
+.chart-plot {
+  transition: filter .2s ease;
+}
+.chart.is-pending .chart-plot {
+  filter: opacity(.35);
+}
+.chart.is-pending .chart-tag {
+  opacity: 0;
+}
+.chart-bars {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.chart.has-bars .chart-bars {
+  opacity: 1;
+  visibility: visible;
+}
+.chart.is-started.is-candles .chart-svg {
+  opacity: 0;
+  visibility: hidden;
+}
+.chart.is-started.is-candles .chart-end {
+  opacity: 0;
+}
+.chart.is-xfade .chart-svg,
+.chart.is-xfade .chart-bars {
+  transition: opacity .2s ease, visibility 0s .2s !important;
+}
+.chart.is-xfade:not(.is-candles) .chart-svg,
+.chart.is-xfade.has-bars .chart-bars,
+.chart.is-xfade .chart-end {
+  transition: opacity .2s ease !important;
+}
+.chart.is-started.is-morph .chart-svg {
+  opacity: 1;
+  visibility: visible;
+}
+.chart.is-morph .chart-tone {
+  visibility: hidden;
+}
+.chart.is-morph .chart-end {
+  transition: none;
+}
+.chart.is-candles .chart-end::after {
+  animation: none;
+  opacity: 0;
+}
+.chart.is-candles .chart-cursor-dot {
+  display: none;
+}
+.chart.is-candles .chart-cursor-line {
+  top: 36px;
+}
+.chart.is-candles .chart-time {
+  top: 18px;
+  padding-inline: 4px;
+  border-radius: 6px;
+  background: var(--bg);
+}
+.chart-ohlc {
+  position: absolute;
+  left: var(--gutter);
+  right: 4px;
+  top: 1px;
+  display: none;
+  flex-wrap: wrap;
+  column-gap: 8px;
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 500;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity .16s ease;
+  pointer-events: none;
+  contain: layout paint;
+}
+.chart.is-candles .chart-ohlc {
+  display: flex;
+}
+.chart.is-candles.is-scrubbing .chart-ohlc {
+  opacity: 1;
+}
+.chart-ohlc b {
+  font-weight: 500;
+  color: var(--hint);
+  margin-right: 3px;
+}
+.chart-ohlc i {
+  font-style: normal;
+}
+.chart-type-home {
+  display: flex;
+  align-items: center;
+}
+.chart-type-home > :not(.chart-type) {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.chart-type {
+  flex: none;
+  width: 40px;
+  margin-inline-start: 8px;
+  overflow: hidden;
+  border-radius: 13px;
+}
+.chart-type-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 13px;
+  background: var(--fill);
+  color: var(--text);
+  transition: opacity .2s ease;
+}
+.chart-type-btn:active {
+  opacity: .55;
+  transition-duration: .06s;
+}
+.chart-type.is-live {
+  transition:
+    opacity .2s ease,
+    width .32s var(--ease-out),
+    margin .32s var(--ease-out),
+    visibility 0s;
+}
+.chart-type.is-off {
+  opacity: 0;
+  visibility: hidden;
+}
+.chart-type.is-live.is-off {
+  transition:
+    opacity .2s ease,
+    width .32s var(--ease-out),
+    margin .32s var(--ease-out),
+    visibility 0s .2s;
+}
+.chart-type.is-off:not(.is-kept) {
+  width: 0;
+  margin-inline-start: 0;
+}
+.roll-col {
+  white-space: pre;
+}
+.change--live {
+  transition: color .32s ease, background-color .32s ease;
+}
+.change-num .roll-d,
+.change-num .roll-c,
+.change-num .roll-col > span {
+  height: 17px;
+  line-height: 17px;
+}
+.change-num .roll-col {
+  transition-duration: .5s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .chart-end::after {
+    display: none;
+  }
+}
