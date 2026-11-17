@@ -545,7 +545,7 @@
     get armed() { return armed(); }
   };
 
-  const LAUNCH_MAX_MS = 1800, MIN_SHOW_MS = 900, MARK_MS = 780, SPLASH_HARD_MS = 12000;
+  const LAUNCH_MAX_MS = 1800, MIN_SHOW_MS = 1400, MARK_MS = 780, HOLD_MS = 420, SPLASH_HARD_MS = 12000;
   (function launchEntrance() {
     const raf = typeof window.requestAnimationFrame === 'function' ? window.requestAnimationFrame.bind(window) : null;
     const splash = typeof doc.getElementById === 'function' ? doc.getElementById('dp-splash') : null;
@@ -563,6 +563,7 @@
       if (root && root.classList) root.classList.remove('sp-on');
       freeHeader();
     };
+    let frameAt = -1;
     const shownAt = () => {
       if (!splash) return -1;
       let t = -1;
@@ -576,6 +577,7 @@
           if (a && typeof a.currentTime === 'number') t = now() - a.currentTime;
         } catch (_) { }
       }
+      if (t < 0) t = frameAt;
       return t < 0 ? -1 : Math.max(0, t, toldAt);
     };
     CK.launch = { get headerHeld() { return headerHeld; }, get shownAt() { return shownAt(); } };
@@ -665,7 +667,7 @@
 
     function splashOut(parts, bar) {
       const q = (s) => splash.querySelector(s);
-      const L = q('.sp-l'), R = q('.sp-r'), K = q('.sp-k'), W = q('.sp-w'), B = q('.sp-b'), G = q('.sp-g'), BG = q('.sp-bg');
+      const L = q('.sp-l'), R = q('.sp-r'), K = q('.sp-k'), W = q('.sp-w'), G = q('.sp-g'), BG = q('.sp-bg');
       const go = (el, kf, t) => {
         if (!el) return;
         try { el.animate(kf, Object.assign({ easing: SOFT.ease, fill: 'both' }, t)); } catch (_) { }
@@ -676,10 +678,9 @@
         el.style.animation = 'none';
         return s;
       };
-      const sL = take(L), sR = take(R), sW = take(W), sB = take(B), sG = take(G);
+      const sL = take(L), sR = take(R), sW = take(W), sG = take(G);
       splash.classList.add('is-out');
       const PART = 16, GROUND = 140, FADE = 560;
-      if (sB) go(B, [{ opacity: sB.opacity }, { opacity: 0 }], { duration: 160, easing: 'linear' });
       if (sW) {
         go(W, [{ opacity: sW.opacity }, { opacity: 0 }], { duration: 240, easing: 'linear' });
         go(W, [{ transform: sW.transform }, { transform: 'translate3d(0, 6px, 0)' }], { duration: 240 });
@@ -744,9 +745,19 @@
     function finish(animate) {
       if (over) return;
       over = true;
+      leave(animate);
+    }
+    function leave(animate) {
       const shown = shownAt();
+      if (splash && shown < 0 && splash.isConnected !== false) {
+        raf(() => {
+          if (frameAt < 0) frameAt = now();
+          leave(animate);
+        });
+        return;
+      }
       let until = splash && shown >= 0 ? shown + MIN_SHOW_MS : 0;
-      if (splash && settledAt >= 0) until = Math.max(until, settledAt + MARK_MS);
+      if (splash && settledAt >= 0) until = Math.max(until, settledAt + MARK_MS + HOLD_MS);
       const wait = Math.max(0, until - now());
       if (wait > 0) setTimeout(() => go(animate), wait);
       else go(animate);

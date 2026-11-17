@@ -844,7 +844,7 @@ CK.buildApp(function () {
       const flagged = h.risk === 'suspicious';
       const mark = netBadge(h);
       const badge = mark.startsWith('<span') ? mark : '';
-      const plain = flagged || h.coin.viewOnly;
+      const plain = flagged || (h.coin.viewOnly && !(window.DemoNets && typeof DemoNets.marketCoinOf === 'function' && DemoNets.marketCoinOf(h.coin)));
       const tag = plain ? 'div' : 'button';
       return `
         <${tag} class="cell asset-row ${plain ? '' : 'press-row'}" ${plain ? '' : 'type="button"'} data-coin="${CK.esc(h.coin.id)}" data-motion-key="${CK.esc(rowKey(h))}">
@@ -1102,9 +1102,14 @@ CK.buildApp(function () {
         openCoin(D.byId[id], row);
         return;
       }
-      const inst = D.instruments.get(id);
-      const held = D.holdings().find((h) => h.coin === inst);
-      if (!inst || !held) return;
+      const held = D.holdings().find((h) => h.coin.id === id);
+      const inst = held ? held.coin : null;
+      if (!inst) return;
+      if (inst.viewOnly) {
+        const coin = typeof DemoNets.marketCoinOf === 'function' ? DemoNets.marketCoinOf(inst) : null;
+        if (coin) openCoin(coin, row);
+        return;
+      }
       if (DemoNets.listed(inst)) {
         trade.openHeldToken(id, row);
         return;
@@ -1212,8 +1217,17 @@ CK.buildApp(function () {
         document.documentElement.classList.remove('sp-on', 'motion-launch');
         if (CK.tg && typeof CK.tg.repaint === 'function') CK.tg.repaint();
       };
+      const look = () => {
+        const s = document.getElementById('dp-splash');
+        if (!s || s.classList.contains('is-out')) return;
+        const shown = CK.launch && typeof CK.launch.shownAt === 'number' ? CK.launch.shownAt : 0;
+        const t = typeof performance !== 'undefined' && performance && typeof performance.now === 'function' ? performance.now() : Infinity;
+        const left = shown < 0 ? (t < 13000 ? 1000 : 0) : Math.min(3000, shown + 3000 - t);
+        if (left > 0) setTimeout(look, left);
+        else drop(true);
+      };
       if (!CK.launch) drop(false);
-      else setTimeout(() => drop(true), 3000);
+      else setTimeout(look, 3000);
     })();
     function refresh() {
       if (T.wallet) pendingAskedFor = null;

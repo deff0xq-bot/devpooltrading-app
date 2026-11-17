@@ -268,18 +268,51 @@
     nets.at = 0;
     D.setNets([]);
   }
+  const FEED_COIN = new Set(['optimism', 'avalanche', 'ink', 'monad', 'unichain']);
+  const GAS_NAME = { AVAX: 'Avalanche', MON: 'Monad' };
+  FEED_COIN.forEach((chain) => pinLogo(`${chain}:${NATIVE_ADDRESS}`, String(GAS_COIN[chain] || 'ETH').toLowerCase()));
+
   function ethOf(chain) {
     const sym = GAS_COIN[chain] || 'ETH';
     const market = D.byId[sym.toLowerCase()];
+    const name = market ? market.name : GAS_NAME[sym] || sym;
+    if (FEED_COIN.has(chain)) {
+      const feedId = `${chain}:${NATIVE_ADDRESS}`;
+      let listed = D.instruments.get(feedId);
+      if (!listed) {
+        const clean = CK.market.cleanToken({ id: feedId, network: chain, address: NATIVE_ADDRESS, symbol: sym, name, risk: 'none' });
+        listed = clean ? D.instrumentOf(clean) : null;
+      }
+      if (listed) {
+        listed.sym = sym;
+        listed.name = name;
+        if (!(listed.price > 0)) {
+          if (market && market.price > 0) listed.price = market.price;
+          else feedGasPrice(chain, listed);
+        }
+        return listed;
+      }
+    }
     const id = `${chain}:${sym.toLowerCase()}`;
     let coin = D.instruments.get(id);
     if (!coin) {
-      coin = { id, isToken: true, neutral: true, viewOnly: true, gas: true, sym, name: sym, color: 'hsl(230 40% 55%)', price: null, change: null, logo: CK.COIN_LOGOS[sym.toLowerCase()] || null, token: { id, symbol: sym, name: sym, risk: 'none', change24h: null } };
+      coin = { id, isToken: true, neutral: true, viewOnly: true, gas: true, sym, name, color: 'hsl(230 40% 55%)', price: null, change: null, logo: CK.COIN_LOGOS[sym.toLowerCase()] || null, token: { id, symbol: sym, name, risk: 'none', change24h: null } };
       D.instruments.set(id, coin);
     }
     if (market && market.price > 0) coin.price = market.price;
     else feedGasPrice(chain, coin);
     return coin;
+  }
+  function ownCoinChain(inst) {
+    if (!inst || !inst.isToken || typeof inst.id !== 'string') return null;
+    const at = inst.id.indexOf(':');
+    const chain = inst.id.slice(0, at);
+    if (!CHAIN_KEYS.has(chain)) return null;
+    return inst.id.slice(at + 1) === NATIVE_ADDRESS || (inst.gas === true && inst.viewOnly === true) ? chain : null;
+  }
+  function marketCoinOf(inst) {
+    const chain = ownCoinChain(inst);
+    return (chain && D.byId[String(GAS_COIN[chain] || 'ETH').toLowerCase()]) || null;
   }
   const gasPriceAsked = new Map();
   function feedGasPrice(chain, coin) {
@@ -2501,6 +2534,7 @@
       if (T.wallet) walletChanged(T.wallet);
     },
     listed: (inst) => !!listingOf(inst),
+    marketCoinOf,
     networkOf,
     chains: () => E.pins().chains.map((chain) => ({ key: chain.key, name: chain.name, gas: GAS_COIN[chain.key] || 'ETH', inst: D.byId[(GAS_COIN[chain.key] || 'ETH').toLowerCase()] || null, mark: netMark(chain.key), net: null, deposit: true }))
       .concat(OWN_KEYS.map((key) => ({ key, name: OWN[key].name, gas: GAS_COIN[key], inst: nativeCoinOf(key), mark: netMark(key), net: OWN[key].net, deposit: OWN[key].deposit !== false }))),

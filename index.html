@@ -41,7 +41,7 @@
 .sp-a1,.sp-a2{border-radius:50%}
 .sp-a1{left:-34%;top:-16%;width:120%;padding-bottom:120%;background:radial-gradient(closest-side,var(--sp-l1),transparent);animation:sp-drift 8s ease-in-out infinite alternate}
 .sp-a2{right:-46%;bottom:-10%;width:130%;padding-bottom:130%;background:radial-gradient(closest-side,var(--sp-l2),transparent);animation:sp-drift 10s ease-in-out -4s infinite alternate-reverse}
-.sp-m{left:50%;top:44%;width:240px;height:204px;margin:-102px 0 0 -120px}
+.sp-m{left:50%;top:44%;width:240px;height:172px;margin:-86px 0 0 -120px}
 .sp-g{left:50%;top:62px;width:340px;height:340px;margin:-170px 0 0 -170px;animation:sp-fade .8s var(--sp-e) both}
 .sp-gb{inset:0;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.38),rgba(255,255,255,.1) 46%,transparent);animation:sp-breathe 2.6s ease-in-out .8s infinite alternate}
 .sp-k{left:50%;top:0;width:124px;height:124px;margin-left:-62px}
@@ -49,17 +49,14 @@
 .sp-l{--y:22px}
 .sp-r{--y:-22px;animation-delay:.06s}
 #dp-splash .sp-w{left:50%;top:148px;width:176px;height:24.4px;margin-left:-88px;fill:#fff;animation:sp-rise .64s var(--sp-e) .2s both}
-.sp-b{left:50%;top:200px;width:104px;height:3px;margin-left:-52px;border-radius:2px;background:rgba(255,255,255,.28);overflow:hidden;animation:sp-fade .5s ease .42s both}
-.sp-b i{left:0;top:0;width:38px;height:100%;border-radius:2px;background:#fff;animation:sp-run 1.1s cubic-bezier(.45,0,.55,1) .42s infinite alternate}
 @keyframes sp-in{from{opacity:0;transform:translate3d(0,var(--y),0)}}
 @keyframes sp-rise{from{opacity:0;transform:translate3d(0,8px,0)}}
 @keyframes sp-fade{from{opacity:0}}
 @keyframes sp-breathe{to{opacity:.5;transform:scale(1.12)}}
-@keyframes sp-run{to{transform:translate3d(66px,0,0)}}
 @keyframes sp-drift{to{transform:translate3d(7%,6%,0)}}
 @keyframes sp-gone{to{opacity:0;visibility:hidden}}
-@media (prefers-reduced-motion:reduce){#dp-splash .sp-h,#dp-splash .sp-w{animation:sp-fade .3s ease both}.sp-a1,.sp-a2,.sp-gb{animation:none}.sp-b{display:none}}
-:root.tg-settling #dp-splash .sp-h,:root.tg-settling #dp-splash .sp-w,:root.tg-settling .sp-g,:root.tg-settling .sp-gb,:root.tg-settling .sp-b,:root.tg-settling .sp-b i{animation-play-state:paused}
+@media (prefers-reduced-motion:reduce){#dp-splash .sp-h,#dp-splash .sp-w{animation:sp-fade .3s ease both}.sp-a1,.sp-a2,.sp-gb{animation:none}}
+:root.tg-settling #dp-splash .sp-h,:root.tg-settling #dp-splash .sp-w,:root.tg-settling .sp-g,:root.tg-settling .sp-gb{animation-play-state:paused}
 :root.sp-on.tg-settling .app{opacity:1;transform:none}
 :root.sp-on .app,:root.sp-on #tabbar{transition:none}
 </style>
@@ -70,7 +67,7 @@
 <body>
 <div class="page">
   <div class="device">
-    <div id="dp-splash" aria-hidden="true"><i class="sp-bg"><i class="sp-a1"></i><i class="sp-a2"></i></i><i class="sp-m"><i class="sp-g"><i class="sp-gb"></i></i><i class="sp-k"><svg class="sp-h sp-l" viewBox="0 0 512 512"><path d="M236 454.35V179.65a6.5 6.5 0 0 0-6.81-6.49 144 144 0 0 0 0 287.68 6.5 6.5 0 0 0 6.81-6.49z"/></svg><svg class="sp-h sp-r" viewBox="0 0 512 512"><path d="M276 57.65v274.7a6.5 6.5 0 0 0 6.81 6.49 144 144 0 0 0 0-287.68A6.5 6.5 0 0 0 276 57.65z"/></svg></i><svg class="sp-w" viewBox="116.09 27.05 677.15 94.04"><use href="#dp-word"/></svg><i class="sp-b"><i></i></i></i></div>
+    <div id="dp-splash" aria-hidden="true"><i class="sp-bg"><i class="sp-a1"></i><i class="sp-a2"></i></i><i class="sp-m"><i class="sp-g"><i class="sp-gb"></i></i><i class="sp-k"><svg class="sp-h sp-l" viewBox="0 0 512 512"><path d="M236 454.35V179.65a6.5 6.5 0 0 0-6.81-6.49 144 144 0 0 0 0 287.68 6.5 6.5 0 0 0 6.81-6.49z"/></svg><svg class="sp-h sp-r" viewBox="0 0 512 512"><path d="M276 57.65v274.7a6.5 6.5 0 0 0 6.81 6.49 144 144 0 0 0 0-287.68A6.5 6.5 0 0 0 276 57.65z"/></svg></i><svg class="sp-w" viewBox="116.09 27.05 677.15 94.04"><use href="#dp-word"/></svg></i></div>
     <div class="tg-header" aria-hidden="true">
       <span class="tg-header-close" data-i18n="nav.close">Закрыть</span>
       <span class="tg-header-title"><b class="tg-header-name"><svg viewBox="0 0 512 512" fill="currentColor" width="15" height="15" aria-hidden="true"><path d="M236 454.35V179.65A6.5 6.5 0 0 0 229.19 173.16A144 144 0 0 0 229.19 460.84A6.5 6.5 0 0 0 236 454.35ZM276 57.65V332.35A6.5 6.5 0 0 0 282.81 338.84A144 144 0 0 0 282.81 51.16A6.5 6.5 0 0 0 276 57.65Z"/></svg>DevpoolTrading</b><span data-i18n="stage.miniApp">мини-приложение</span></span>

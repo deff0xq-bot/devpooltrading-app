@@ -1912,7 +1912,14 @@
     function paintGroup() {
       showSection(heldBox, !(heldRow.hidden && levelsRow.hidden));
     }
-    const heldNow = () => (D.balancesKnown ? D.holdings().find((row) => row.coin === inst && row.risk !== 'suspicious') : null);
+    const sameCoin = (row) => row.risk !== 'suspicious' && (row.coin === inst
+      || (!inst.isToken && !!window.DemoNets && typeof DemoNets.marketCoinOf === 'function' && DemoNets.marketCoinOf(row.coin) === inst));
+    const heldNow = () => {
+      if (!D.balancesKnown) return null;
+      const rows = D.holdings().filter(sameCoin);
+      if (rows.length < 2) return rows[0] || null;
+      return { ...rows[0], amount: rows.reduce((sum, row) => sum + row.amount, 0), usd: rows.reduce((sum, row) => sum + row.usd, 0), priced: rows.some((row) => row.priced) };
+    };
     function paintHeld() {
       const h = heldNow();
       heldRow.hidden = !h;
@@ -2430,7 +2437,7 @@
       if (closed) return;
       const wallet = CK.ton.wallet;
       const order = window.DemoOrders && typeof DemoOrders.forToken === 'function' ? DemoOrders.forToken(inst) : null;
-      const own = !!order || (D.balancesKnown && D.holdings().some((row) => row.coin === inst && row.risk !== 'suspicious'));
+      const own = !!order || (D.balancesKnown && D.holdings().some(sameCoin));
       const cost = own && wallet && window.DemoCost ? DemoCost.of(wallet.address, inst.id) : null;
       const view = cardLevels({ order, cost, price: livePrice(inst), gramUsd: livePrice(D.byId.ton) });
       if (chart) chart.levels(view.levels);
