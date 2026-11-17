@@ -14,18 +14,12 @@
 }
 @media (prefers-reduced-motion: reduce) {
   :root {
-    --motion-soft: ease-out;
-    --motion-soft-ms: 120ms;
-    --motion-spring: ease-out;
-    --motion-spring-ms: 120ms;
-    --motion-sheet: ease-out;
-    --motion-sheet-ms: 120ms;
+    --motion-soft: ease-out; --motion-soft-ms: 120ms;
+    --motion-spring: ease-out; --motion-spring-ms: 120ms;
+    --motion-sheet: ease-out; --motion-sheet-ms: 120ms;
   }
 }
-html.ck-motion [role=tabpanel] {
-  transition: none;
-}
-html.motion-launch #panes,
-html.motion-launch #tabbar {
-  opacity: 0 !important;
-}
+
+html.ck-motion [role="tabpanel"] { transition: none; }
+
+html.motion-launch #panes, html.motion-launch #tabbar { opacity: 0 !important; }

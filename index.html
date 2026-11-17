@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru">
+<html lang="ru" class="sp-on">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
@@ -27,8 +27,33 @@
 <link rel="stylesheet" href="demo/manage.css">
 <link rel="stylesheet" href="demo/welcome.css">
 <link rel="stylesheet" href="demo/bonus.css">
+<link rel="stylesheet" href="demo/fees.css">
 <link rel="stylesheet" href="kit/compat.css">
 <link rel="stylesheet" href="kit/fonts/inter.css">
+<style id="sp-css">
+#dp-splash{position:absolute;inset:0;z-index:90;contain:strict;--sp-bg:var(--bg,#fff);--sp-ink:var(--accent,#44a3dd);--sp-e:cubic-bezier(.22,1,.36,1);animation:sp-gone .4s var(--sp-e) 12s forwards}
+#dp-splash.is-out{pointer-events:none}
+#dp-splash i,#dp-splash svg{position:absolute;display:block}
+.sp-bg{inset:0;background:var(--sp-bg)}
+.sp-m{left:50%;top:44%;width:124px;height:124px;margin:-62px 0 0 -62px}
+#dp-splash .sp-k,#dp-splash .sp-t,#dp-splash .sp-h{inset:0;width:100%;height:100%}
+.sp-g{inset:-38%;border-radius:50%;background:radial-gradient(closest-side,rgba(68,163,221,.34),rgba(68,163,221,0));opacity:0}
+.sp-c{inset:21.9%;border-radius:50%;background:var(--sp-ink);opacity:0}
+.sp-h{fill:var(--sp-ink);animation:sp-in .64s var(--sp-e) both}
+.sp-t{animation:sp-tide 1s ease-in-out .7s infinite alternate}
+.sp-l{--y:26px}
+.sp-r{--y:-26px;animation-delay:.07s}
+.sp-tl{--t:-6px}
+.sp-tr{--t:6px;animation-delay:.77s}
+@keyframes sp-in{from{opacity:0;transform:translate3d(0,var(--y),0)}}
+@keyframes sp-tide{to{transform:translate3d(0,var(--t),0)}}
+@keyframes sp-fade{from{opacity:0}}
+@keyframes sp-gone{to{opacity:0;visibility:hidden}}
+@media (prefers-reduced-motion:reduce){.sp-h{animation:sp-fade .3s ease both}.sp-t{animation:none}}
+:root.tg-settling .sp-h,:root.tg-settling .sp-t{animation-play-state:paused}
+:root.sp-on.tg-settling .app{opacity:1;transform:none}
+:root.sp-on .app,:root.sp-on #tabbar{transition:none}
+</style>
 <script src="kit/compat.js"></script>
 <script src="kit/i18n.js"></script>
 <script src="kit/core.js"></script>
@@ -36,6 +61,7 @@
 <body>
 <div class="page">
   <div class="device">
+    <div id="dp-splash" aria-hidden="true"><i class="sp-bg"></i><i class="sp-m"><i class="sp-g"></i><i class="sp-k"><i class="sp-c"></i><i class="sp-t sp-tl"><svg class="sp-h sp-l" viewBox="0 0 512 512"><path d="M236 454.35V179.65a6.5 6.5 0 0 0-6.81-6.49 144 144 0 0 0 0 287.68 6.5 6.5 0 0 0 6.81-6.49z"/></svg></i><i class="sp-t sp-tr"><svg class="sp-h sp-r" viewBox="0 0 512 512"><path d="M276 57.65v274.7a6.5 6.5 0 0 0 6.81 6.49 144 144 0 0 0 0-287.68A6.5 6.5 0 0 0 276 57.65z"/></svg></i></i></i></div>
     <div class="tg-header" aria-hidden="true">
       <span class="tg-header-close" data-i18n="nav.close">Закрыть</span>
       <span class="tg-header-title"><b class="tg-header-name"><svg viewBox="0 0 512 512" fill="currentColor" width="15" height="15" aria-hidden="true"><path d="M236 454.35V179.65A6.5 6.5 0 0 0 229.19 173.16A144 144 0 0 0 229.19 460.84A6.5 6.5 0 0 0 236 454.35ZM276 57.65V332.35A6.5 6.5 0 0 0 282.81 338.84A144 144 0 0 0 282.81 51.16A6.5 6.5 0 0 0 276 57.65Z"/></svg>DevpoolTrading</b><span data-i18n="stage.miniApp">мини-приложение</span></span>
