@@ -15,28 +15,17 @@ CK.buildApp(function () {
 
   CK.i18n.add({
     'tab.bonus': ['Бонусы', 'Bonuses', 'Бонуси', 'Бонустар'],
-    'p2p.paused': ['P2P на паузе', 'P2P is paused', 'P2P на паузі', 'P2P уақытша тоқтатылды'],
-    'p2p.pausedHint': ['P2P на паузе. Ваши сделки и залог в Профиле', 'P2P is paused. Your deals and escrow are in Profile', 'P2P на паузі. Ваші угоди й застава в Профілі', 'P2P уақытша тоқтатылды. Мәмілелеріңіз бен кепіл Профильде'],
     'profile.howto': ['Как пользоваться', 'How to use', 'Як користуватися', 'Қалай пайдалану']
   });
 
   const P2P_MODE = (() => {
-    if (/^#kit-p2p/.test(location.hash) && !CK.tg.inside) return 'open';
     const said = (document.querySelector('meta[name="dp-p2p"]') || {}).content;
     return said === 'hidden' || said === 'off' ? said : 'open';
   })();
-  const P2P_LINK_DEAL = (() => {
-    const id = new URLSearchParams(location.search).get('p2p') || '';
-    return /^[0-9a-f]{16}$/.test(id) ? id : null;
-  })();
-  const P2P_ROW_KEY = 'ck-p2p-row';
-  function p2pLandTab() {
-    try {
-      return JSON.parse(localStorage.getItem(P2P_ROW_KEY) || 'null') ? 'profile' : 'bonus';
-    } catch (_) {
-      return 'bonus';
-    }
-  }
+  try {
+    localStorage.removeItem('ck-p2p-row');
+    localStorage.removeItem('ck-p2p-hint');
+  } catch (_) { }
 
   const tabIcon = (name, near) => (CK.ICONS && CK.ICONS[name] ? name : near);
   const TABS = [
@@ -77,7 +66,7 @@ CK.buildApp(function () {
     cheque: { tab: 'portfolio', open: () => DemoCheques.openCreate({}) },
     exchange: { tab: 'exchange' },
     trade: { tab: 'trade' },
-    p2p: P2P_MODE === 'open' ? { tab: 'p2p' } : { tab: p2pLandTab(), open: () => openP2PLink() },
+    p2p: P2P_MODE === 'open' ? { tab: 'p2p' } : { tab: 'portfolio' },
     profile: { tab: 'profile' },
     alerts: { tab: 'profile', open: () => openAlerts(null) },
     bonus: P2P_MODE === 'open' ? { tab: 'profile', open: () => openBonus() } : { tab: 'bonus' },
@@ -98,7 +87,7 @@ CK.buildApp(function () {
     if (h === 'kit') return 'profile';
     if (h === 'markets') return 'trade';
     if (TABS.some((t) => t.id === h)) return h;
-    if (new URLSearchParams(location.search).has('p2p')) return P2P_MODE === 'open' ? 'p2p' : P2P_LINK_DEAL ? 'profile' : p2pLandTab();
+    if (new URLSearchParams(location.search).has('p2p')) return P2P_MODE === 'open' ? 'p2p' : 'portfolio';
     if (launchView) return LAUNCH_VIEWS[launchView].tab;
     return 'portfolio';
   }
@@ -185,7 +174,7 @@ CK.buildApp(function () {
     });
     return lazyJobs[id];
   }
-  const loadP2P = () => (window.DemoP2P ? Promise.resolve(window.DemoP2P) : loadLazy('lazy-p2p').then(() => {
+  const loadP2P = () => (P2P_MODE !== 'open' ? Promise.reject(new Error('no_p2p')) : window.DemoP2P ? Promise.resolve(window.DemoP2P) : loadLazy('lazy-p2p').then(() => {
     if (!window.DemoP2P) throw new Error('no_p2p');
     return window.DemoP2P;
   }));
@@ -251,7 +240,7 @@ CK.buildApp(function () {
   }
   const cellTitle = (o) => (o.key ? `<span class="cell-title" ${L(o.key)}>${tx(o.key)}</span>` : `<span class="cell-title">${o.title}</span>`);
   function tileCell(o) {
-    return `<button class="cell cell-tile press-row" type="button" id="${o.id || ''}"><span>${CK.tile(o.icon, { tone: o.tone })}</span><span class="cell-main">${cellTitle(o)}</span>${o.value ? `<span class="cell-value" data-value>${o.value}</span>` : ''}${icon('chevron-right', { size: 16, className: 'cell-chevron' })}</button>`;
+    return `<button class="cell cell-tile press-row" type="button" id="${o.id || ''}"><span>${o.tile || CK.tile(o.icon, { tone: o.tone })}</span><span class="cell-main">${cellTitle(o)}</span>${o.value ? `<span class="cell-value" data-value>${o.value}</span>` : ''}${icon('chevron-right', { size: 16, className: 'cell-chevron' })}</button>`;
   }
   function switchCell(o) {
     return `<div class="cell cell-tile"><span>${CK.tile(o.icon, { tone: o.tone })}</span><span class="cell-main">${cellTitle(o)}</span><button id="${o.id}"></button></div>`;
@@ -580,80 +569,6 @@ CK.buildApp(function () {
     show: showLink
   };
 
-  const P2P_HINT_KEY = 'ck-p2p-hint';
-  const p2pRow = (() => {
-    const subs = [];
-    const count = (v) => Math.max(0, Math.floor(Number(v)) || 0);
-    let shown = null, answered = false, job = null, hinted = false;
-    try {
-      const kept = P2P_MODE === 'hidden' ? JSON.parse(localStorage.getItem(P2P_ROW_KEY) || 'null') : null;
-      if (kept && typeof kept === 'object') shown = { deals: count(kept.deals) };
-    } catch (_) {
-      shown = null;
-    }
-    function keep(value) {
-      try {
-        if (value) localStorage.setItem(P2P_ROW_KEY, JSON.stringify(value));
-        else localStorage.removeItem(P2P_ROW_KEY);
-      } catch (_) { }
-    }
-    function hintOnce() {
-      if (hinted) return;
-      hinted = true;
-      try {
-        if (localStorage.getItem(P2P_HINT_KEY) === '1') return;
-        localStorage.setItem(P2P_HINT_KEY, '1');
-      } catch (_) { }
-      CK.toast(tx('p2p.pausedHint'), { icon: 'info', tone: 'accent' });
-    }
-    function ask() {
-      if (P2P_MODE !== 'hidden') return Promise.resolve(null);
-      if (answered) return Promise.resolve(shown);
-      if (job) return job;
-      job = CK.market.ready
-        .then(() => (CK.market.mode === 'live' && CK.tg.inside ? CK.tg.whenInitData() : ''))
-        .then((initData) => {
-          if (!initData) return shown;
-          return fetch('api/p2p/summary', { headers: { Authorization: 'tma ' + initData }, cache: 'no-store' })
-            .then((res) => res.json())
-            .then((body) => {
-              if (!body || body.ok !== true) throw new Error((body && body.error) || 'bad_response');
-              answered = true;
-              const something = ['deals', 'appeals', 'ads', 'methods', 'recent'].some((k) => count(body[k]) > 0) || body.arbiter === true;
-              shown = something ? { deals: count(body.deals) } : null;
-              keep(shown);
-              subs.forEach((fn) => fn(shown));
-              if (shown) hintOnce();
-              return shown;
-            });
-        })
-        .catch((err) => {
-          console.warn('p2p summary:', err && err.message);
-          return shown;
-        })
-        .finally(() => { job = null; });
-      return job;
-    }
-    return {
-      get shown() { return shown; },
-      ask,
-      onChange(fn) { subs.push(fn); },
-      open: (stack) => openP2PMine(stack)
-    };
-  })();
-  function openP2PMine(stack, dealId) {
-    const on = stack || stacks[currentTab];
-    const id = Object.keys(stacks).find((key) => stacks[key] === on) || currentTab;
-    return loadP2P()
-      .then((mod) => {
-        if (typeof mod.openMine !== 'function') throw new Error('no_p2p');
-        return mod.openMine({ stack: on, goTab, id }, dealId || null);
-      })
-      .catch((err) => {
-        console.error('p2p:', err);
-        CK.toast(tx('common.loadFail'), { icon: 'warning', tone: 'down' });
-      });
-  }
   function openP2PTab(dealId) {
     goTab('p2p');
     return (p2pStandIn ? p2pStandIn.ready() : Promise.resolve())
@@ -667,17 +582,9 @@ CK.buildApp(function () {
         CK.toast(tx('common.loadFail'), { icon: 'warning', tone: 'down' });
       });
   }
-  function openP2PLink() {
-    p2pRow.ask().then((shown) => {
-      if (CK.sheet.top) return;
-      if (!shown) return void CK.toast(tx('p2p.paused'), { icon: 'info', tone: 'accent' });
-      if (currentTab !== 'profile') goTab('profile');
-      if (stacks.profile && stacks.profile.depth === 1) openP2PMine(stacks.profile);
-    });
-  }
   function openBonus(from) {
     if (!window.DemoBonus || !stacks.profile || stacks.profile.depth > 1) return;
-    DemoBonus.push(stacks.profile, { from, goTab, invite: invitePart, p2p: p2pRow });
+    DemoBonus.push(stacks.profile, { from, goTab, invite: invitePart });
   }
 
   const ALLOC_ROWS = 6;
@@ -720,7 +627,7 @@ CK.buildApp(function () {
     repaintAssets();
   }
   function buildPortfolio() {
-    const screen = CK.screen({ title: tr('tab.portfolio'), titleHtml: `<button class="wl-switch press" type="button" data-wallet="switch" aria-haspopup="dialog"><span class="wl-ava wl-ava--title">${icon('wallet', { fill: true })}</span><b class="wl-switch-name"></b>${icon('chevron-down', { className: 'wl-switch-chev' })}</button>`, large: false, className: 'screen--wallet', actions: [{ icon: 'portfolio', fill: true, size: 20, className: 'navbtn--alloc', label: () => tx('alloc.open'), onClick: () => { CK.haptic.selection(); if (window.DemoAllocation) DemoAllocation.open(); } }] });
+    const screen = CK.screen({ title: tr('tab.portfolio'), titleHtml: `<button class="wl-switch press" type="button" data-wallet="switch" aria-haspopup="dialog"><span class="wl-ava wl-ava--title">${CK.logoMark ? CK.logoMark(20) : icon('wallet', { fill: true })}</span><b class="wl-switch-name"></b>${icon('chevron-down', { className: 'wl-switch-chev' })}</button>`, large: false, className: 'screen--wallet', actions: [{ icon: 'portfolio', fill: true, size: 20, className: 'navbtn--alloc', label: () => tx('alloc.open'), onClick: () => { CK.haptic.selection(); if (window.DemoAllocation) DemoAllocation.open(); } }] });
     const body = screen.body;
     let config = null, walletAsked = false, shownState = '', listShape = null, shownAddress = null;
     let loadFailed = false, loadTimer = 0, loadJob = null, fails = 0, sendOpen = false, pendingAskedFor = null;
@@ -740,7 +647,7 @@ CK.buildApp(function () {
       : `<div class="cell notice-row">${noticeText(key)}</div>`);
     const walletCard = (mark, title, text, buttons) => `
       <div class="group wallet-card">
-        <span class="wallet-card-mark">${icon(mark, { size: 26, fill: true })}</span>
+        <span class="wallet-card-mark">${mark === 'wallet' && CK.logoMark ? CK.logoMark(30) : icon(mark, { size: 26, fill: true })}</span>
         <b>${title}</b>
         ${text ? `<span>${text}</span>` : ''}
         ${buttons || ''}
@@ -1490,7 +1397,6 @@ CK.buildApp(function () {
     screen.body.innerHTML = `
       <div class="group" id="profile-wallet" hidden></div>
       <div class="group">${tileCell({ id: 'row-cheques', icon: 'gift', tone: 'orange', key: 'cheque.mine', value: '<span data-cheques-count></span>' })}${tileCell({ id: 'row-invoices', icon: 'doc', tone: 'teal', key: 'inv.row' })}${tileCell({ id: 'row-alerts', icon: 'bell', tone: 'red', key: 'alerts.row' })}</div>
-      <div class="group" id="profile-p2p" hidden>${tileCell({ id: 'row-p2p', icon: tabIcon('p2p', 'users'), tone: 'blue', key: 'tab.p2p', value: '<span data-p2p-deals></span>' })}</div>
       ${P2P_MODE === 'open' ? `<div class="group">${tileCell({ id: 'row-bonus', icon: tabIcon('tab-gift', 'gift'), tone: 'green', key: 'tab.bonus' })}</div>` : ''}
       <div class="group" id="profile-payouts" hidden></div>
       <div id="profile-settings">
@@ -1536,7 +1442,9 @@ CK.buildApp(function () {
         walletMore.hidden = true;
         return;
       }
-      setHtml(walletGroup, tileCell({ id: 'row-wallet', icon: 'wallet', tone: 'blue', key: 'wallet.row', value: CK.esc(T.shortAddress(wallet.friendly)) }));
+      const shown = window.DemoWalletList && DemoWalletList.current();
+      const face = CK.logoMark ? `<span class="wl-ava wl-ava--row" style="--c:${shown ? shown.hue : 'var(--accent)'}" aria-hidden="true">${CK.logoMark(24)}</span>` : '';
+      setHtml(walletGroup, tileCell({ id: 'row-wallet', icon: 'wallet', tone: 'blue', tile: face, key: 'wallet.row', value: CK.esc(T.shortAddress(wallet.friendly)) }));
       const status = CK.wallet.status;
       const firstMethod = status.mainMethod || status.method;
       const bio = status.kind === 'signer' && !!status.bioType && (firstMethod === 'keychain' || firstMethod === 'biometric');
@@ -1614,19 +1522,6 @@ CK.buildApp(function () {
     });
     const bonusRow = $('#row-bonus', body);
     if (bonusRow) bonusRow.addEventListener('click', (e) => openBonus(e.currentTarget));
-    const p2pGroup = $('#profile-p2p', body);
-    function paintP2PRow(shown) {
-      p2pGroup.hidden = !shown;
-      $('[data-p2p-deals]', p2pGroup).textContent = shown && shown.deals ? String(shown.deals) : '';
-    }
-    paintP2PRow(p2pRow.shown);
-    p2pRow.onChange(paintP2PRow);
-    $('#row-p2p', body).addEventListener('click', () => {
-      if (stacks.profile.depth > 1 || CK.sheet.top) return;
-      CK.haptic.selection();
-      openP2PMine(stacks.profile);
-    });
-    onShow.profile = () => { p2pRow.ask(); };
     const chequesRow = $('#row-cheques', body);
     chequesRow.addEventListener('click', (e) => DemoCheques.openList(e.currentTarget, stacks.profile));
     $('#row-invoices', body).addEventListener('click', (e) => DemoInvoices.openList(e.currentTarget, stacks.profile));
@@ -2062,7 +1957,7 @@ CK.buildApp(function () {
     if (exShow) exShow();
   };
   if (P2P_MODE === 'open') mountTab('p2p', window.DemoP2P || lazyP2P());
-  else mountTab('bonus', window.DemoBonus, { invite: invitePart, p2p: p2pRow });
+  else mountTab('bonus', window.DemoBonus, { invite: invitePart });
   const shared = readShareCode(CK.tg.startParam) || readShareCode(CK.tg.launchSearch.get('coin') || '');
   if (shared && currentTab !== 'trade') {
     currentTab = 'trade';
@@ -2159,13 +2054,6 @@ CK.buildApp(function () {
     CK.market.ready.then(() => { if (DemoCheques.isSample()) DemoCheques.openClaim(null, CK.tg.launchSearch.get('cheque')); });
   }
   const p2pLink = new URLSearchParams(location.search).has('p2p');
-  if (P2P_MODE === 'hidden' && p2pLink) {
-    CK.market.ready.then(() => setTimeout(() => {
-      if (CK.sheet.top) return;
-      if (P2P_LINK_DEAL) openP2PMine(stacks.profile, P2P_LINK_DEAL);
-      else openP2PLink();
-    }, 400));
-  }
 
   const linkOpens = !!(launchView || shared || sellLink || invoiceId || p2pLink || CK.cheques.parseStart(chequeCode) || ['send', 'invoice', 'cheque'].some((key) => CK.tg.launchSearch.get(key)));
   if (!linkOpens && !location.hash.startsWith('#kit') && window.DemoWelcome && typeof DemoWelcome.maybeShow === 'function') {
@@ -2208,12 +2096,11 @@ CK.buildApp(function () {
 
   const inviteLink = () => (invite && !inviteStale ? INVITE_LINK + invite.code : null);
   window.DemoApp = {
-    goTab, applyTheme, applyPreset, inviteLink, loadP2P, invite: invitePart, p2pRow, p2pMode: P2P_MODE,
-    openP2PMine: (dealId) => {
+    goTab, applyTheme, applyPreset, inviteLink, invite: invitePart, p2pMode: P2P_MODE,
+    loadP2P: P2P_MODE === 'open' ? loadP2P : null,
+    openP2PMine: P2P_MODE === 'open' ? (dealId) => {
       if (CK.sheet.top) CK.sheet.top.close();
-      if (P2P_MODE === 'open') return openP2PTab(dealId);
-      if (currentTab !== 'profile') goTab('profile');
-      return openP2PMine(stacks.profile, dealId);
-    }
+      return openP2PTab(dealId);
+    } : null
   };
 });

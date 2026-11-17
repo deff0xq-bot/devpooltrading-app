@@ -175,6 +175,8 @@
 .w-setup--middle { justify-content: center; }
 .w-setup-mark { align-self: center; display: flex; align-items: center; justify-content: center; width: 72px; height: 72px; color: var(--green); }
 .w-setup-mark--accent { color: var(--accent); }
+.w-setup-mark--logo { width: 64px; height: 64px; margin: 4px 0; border-radius: 50%; background: var(--c, var(--accent)); color: #fff; }
+.w-setup-mark--logo > .logo-mark { width: 72%; height: 72%; color: inherit; }
 .w-setup .wallet-address { margin-top: 0; }
 .w-words-field { display: block; width: 100%; height: 124px; padding: 10px 14px; border: 0; border-radius: var(--r-field); background: var(--fill); color: var(--text); font: inherit; font-size: 15px; line-height: 21px; resize: none; outline: none; user-select: text; -webkit-user-select: text; }
 .w-words-field::placeholder { color: var(--hint); opacity: 1; }
@@ -203,7 +205,9 @@
 .wl-switch-chev { width: 18px; height: 18px; margin-inline-start: -3px; color: var(--hint); --icon-w: 2.25; }
 .wl-ava { position: relative; flex: none; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; background: var(--c, var(--accent)); color: #fff; --icon-knock: var(--c, var(--accent)); }
 .wl-ava > .icon { width: 20px; height: 20px; }
+.wl-ava > .logo-mark { width: 72%; height: 72%; color: inherit; }
 .wl-ava--title { width: 28px; height: 28px; }
+.wl-ava--row { width: 34px; height: 34px; }
 .wl-ava--title > .icon { width: 16px; height: 16px; }
 .wl-on { position: absolute; right: -3px; bottom: -3px; display: flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; background: var(--accent); color: #fff; box-shadow: 0 0 0 2px var(--card); }
 .wl-on > .icon { width: 12px; height: 12px; --icon-w: 3; }

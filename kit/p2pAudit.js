@@ -1,6 +1,8 @@
 (function () {
   'use strict';
   const CK = window.CK;
+  const had = Object.getOwnPropertyDescriptor(CK, 'p2pAudit');
+  if (had && !had.configurable) return;
   const USDT = '0:b113a994b5024a16719f69139328eb759596c38a25f59028b146fecdc3621dfe';
   const ID = /^[0-9a-f]{16}$/;
   const UNITS = /^[1-9]\d{0,38}$/;

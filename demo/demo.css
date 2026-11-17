@@ -155,6 +155,7 @@
 .balance-address { display: inline-flex; flex: none; align-items: center; gap: 5px; height: 28px; margin: 0; padding-inline: 10px; border-radius: 14px; background: rgba(255, 255, 255, .16); color: inherit; font-size: 13px; line-height: 18px; font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .wallet-card { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 24px 16px 16px; text-align: center; }
 .wallet-card-mark { display: flex; align-items: center; justify-content: center; width: 52px; height: 52px; margin-bottom: 6px; border-radius: 26px; background: var(--accent-soft); color: var(--accent); --icon-knock: transparent; }
+.wallet-card-mark > .logo-mark { width: 30px; height: 30px; color: inherit; }
 .wallet-card > b { font-size: 17px; line-height: 22px; font-weight: 600; letter-spacing: -.01em; }
 .wallet-card > span:not(.wallet-card-mark, .wallet-address) { font-size: 14px; line-height: 19px; color: var(--hint); }
 .wallet-card .btn { margin-top: 6px; }

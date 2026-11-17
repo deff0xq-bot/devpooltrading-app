@@ -321,7 +321,7 @@
       const buttons = w.buttons.map((b) => (b.primary
         ? `<button class="btn btn--wide press" type="button" data-ex="${b.act}">${esc(b.label)}</button>`
         : `<button class="tk-link wallet-note-link press" type="button" data-ex="${b.act}">${esc(b.label)}</button>`)).join('');
-      return `<div class="${form}"><div class="group wallet-card ex-wallet"><span class="wallet-card-mark">${icon(w.mark, { size: 26, fill: true })}</span><b>${esc(w.title)}</b>${w.text ? `<span>${esc(w.text)}</span>` : ''}${buttons}</div></div>`;
+      return `<div class="${form}"><div class="group wallet-card ex-wallet"><span class="wallet-card-mark">${w.mark === 'wallet' && CK.logoMark ? CK.logoMark(30) : icon(w.mark, { size: 26, fill: true })}</span><b>${esc(w.title)}</b>${w.text ? `<span>${esc(w.text)}</span>` : ''}${buttons}</div></div>`;
     }
     if (m.mode === 'route') return `<div class="${form}">${runHtml(m.run)}</div>`;
     return `

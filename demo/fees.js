@@ -18,11 +18,15 @@
     'forget.bonusMarks': ['Отметки о бонусах, без сумм', 'Bonus marks, without amounts', 'Позначки про бонуси, без сум', 'Бонус белгілері, сомаларсыз'],
     'forget.bonusDrop': ['Пропадёт начисленное, но ещё не готовое к выплате: {sum}', 'Credit not yet ready for payout is lost: {sum}', 'Пропаде нараховане, але ще не готове до виплати: {sum}', 'Төлемге әлі дайын емес есептелген сома жойылады: {sum}'],
     'forget.settling': ['Обмен ещё идёт, попробуйте позже', 'A swap is still going, try later', 'Обмін ще триває, спробуйте пізніше', 'Айырбас әлі жүріп жатыр, кейінірек көріңіз'],
-    'forget.bonusUnreadable': ['Бонусы не читаются, попробуйте позже', 'Bonuses can’t be read, try later', 'Бонуси не читаються, спробуйте пізніше', 'Бонустар оқылмайды, кейінірек көріңіз']
+    'forget.bonusUnreadable': ['Бонусы не читаются, попробуйте позже', 'Bonuses can’t be read, try later', 'Бонуси не читаються, спробуйте пізніше', 'Бонустар оқылмайды, кейінірек көріңіз'],
+    'forget.payDetails': ['Реквизиты для оплаты: {n}', 'Payment details: {n}', 'Реквізити для оплати: {n}', 'Төлем деректемелері: {n}'],
+    'forget.dealProfile': ['Профиль для сделок', 'Profile for deals', 'Профіль для угод', 'Мәмілелерге арналған профиль'],
+    'forget.dealsKept': ['Завершённые сделки: {n}, для споров', 'Finished deals: {n}, for disputes', 'Завершені угоди: {n}, для спорів', 'Аяқталған мәмілелер: {n}, даулар үшін'],
+    'forget.dealsOpen': ['Сначала закройте сделки и объявления', 'Close your deals and ads first', 'Спершу закрийте угоди й оголошення', 'Алдымен мәмілелер мен хабарландыруларды жабыңыз']
   });
   const p2pMode = () => (window.DemoApp && DemoApp.p2pMode) || 'open';
-  const p2pShown = () => p2pMode() === 'open' || !!(window.DemoApp && DemoApp.p2pRow && DemoApp.p2pRow.shown);
-  const canOpenP2P = () => p2pMode() !== 'off' && !!(window.DemoApp && typeof DemoApp.openP2PMine === 'function');
+  const p2pShown = () => p2pMode() === 'open';
+  const canOpenP2P = () => p2pShown() && !!(window.DemoApp && typeof DemoApp.openP2PMine === 'function');
   const T = CK.ton;
   const $ = (s, r) => (r || document).querySelector(s);
   const esc = (s) => CK.esc(String(s));
@@ -153,7 +157,7 @@
       return NANO.test(String(b.minNano)) ? tx('forget.unpaidSmall', { sum, min: gramText(b.minNano) }) : tx('forget.unpaid', { sum });
     }
     if (b.code === 'orders_unreadable') return tx('forget.unreadable');
-    if (b.code === 'p2p_open') return tx('forget.p2pOpen');
+    if (b.code === 'p2p_open') return tx(p2pShown() ? 'forget.p2pOpen' : 'forget.dealsOpen');
     if (b.code === 'ref_settling' || b.code === 'bonus_settling') return tx('forget.settling');
     if (b.code === 'bonus_unreadable') return tx('forget.bonusUnreadable');
     return tx('forget.fail');
@@ -170,8 +174,9 @@
     if (n('alerts', 'remove')) goes.push(tx('forget.alerts', { n: n('alerts', 'remove') }));
     if (n('orders', 'remove')) goes.push(tx('forget.orders', { n: n('orders', 'remove') }));
     if (n('referral', 'remove')) goes.push(tx('forget.referral'));
-    if (n('p2p', 'methods')) goes.push(tx('forget.p2p', { n: n('p2p', 'methods') }));
-    if (n('p2p', 'person')) goes.push(tx('forget.p2pName'));
+    const named = p2pShown();
+    if (n('p2p', 'methods')) goes.push(tx(named ? 'forget.p2p' : 'forget.payDetails', { n: n('p2p', 'methods') }));
+    if (n('p2p', 'person')) goes.push(tx(named ? 'forget.p2pName' : 'forget.dealProfile'));
     if (n('bot', 'remove')) goes.push(tx('forget.bot'));
     if (n('botPrefs', 'remove')) goes.push(tx('forget.botPrefs'));
     if (n('directory', 'remove')) goes.push(tx('forget.directory'));
@@ -183,7 +188,7 @@
     if (bonus && bonus.note === 'bonus_marks') stays.push(tx('forget.bonusMarks'));
     if (ref && ref.note === 'payout_record') stays.push(tx('forget.payouts'));
     if (ref && ref.note === 'not_supported') stays.push(tx('forget.referralKept'));
-    if (n('p2p', 'keep')) stays.push(tx('forget.p2pDeals', { n: n('p2p', 'keep') }));
+    if (n('p2p', 'keep')) stays.push(tx(named ? 'forget.p2pDeals' : 'forget.dealsKept', { n: n('p2p', 'keep') }));
     if (n('backup_guard', 'keep')) stays.push(tx('forget.guard'));
     if (n('directory', 'keep')) stays.push(tx('forget.directoryOff'));
     const open = n('cheques', 'open') || (by.get('cheques') && by.get('cheques').note === 'open_cheques') ? tx('forget.chequesOpen', { n: n('cheques', 'open') || 1 }) : '';
@@ -319,5 +324,5 @@
     load();
   }
 
-  window.DemoFees = { openFees, openForget, pctOf, linesOf, loadFacts };
+  window.DemoFees = { openFees, openForget, pctOf, linesOf, blockerText, loadFacts };
 })();

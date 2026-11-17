@@ -1,6 +1,7 @@
 (function () {
   'use strict';
   const { icon, t: tx } = CK;
+  const mark = () => (CK.logoMark ? CK.logoMark(24) : icon('wallet', { fill: true }));
   const T = CK.ton;
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
@@ -18,6 +19,7 @@
   };
   async function canRemove(address) {
     await W().removable(address);
+    if (window.DemoApp && DemoApp.p2pMode && DemoApp.p2pMode !== 'open') return;
     const p2p = window.DemoP2P || (window.DemoApp && DemoApp.loadP2P ? await DemoApp.loadP2P().catch(() => null) : null);
     if (!p2p && window.DemoApp && DemoApp.loadP2P) throw Object.assign(new Error('wallet_unsure'), { code: 'wallet_unsure' });
     if (p2p && typeof p2p.usesWallet === 'function' && await p2p.usesWallet(address)) throw Object.assign(new Error('wallet_p2p'), { code: 'wallet_p2p' });
@@ -25,7 +27,8 @@
   const nameOf = (row, i) => row.name || tx('wallets.default', { n: i + 1 });
   const HUES = ['#2F80ED', '#AF52DE', '#34C759', '#FF9500', '#30B0C7', '#FF2D55', '#5856D6', '#A2845E'];
   const hueOf = (i) => HUES[Math.max(0, i) % HUES.length];
-  const avatar = (i, on) => `<span class="wl-ava" style="--c:${hueOf(i)}">${icon('wallet', { fill: true })}${on ? `<i class="wl-on">${icon('check')}</i>` : ''}</span>`;
+  const bigMark = () => { const at = W().list().findIndex((row) => row.active); return `<div class="w-setup-mark w-setup-mark--logo" style="--c:${hueOf(at)}">${mark()}</div>`; };
+  const avatar = (i, on) => `<span class="wl-ava" style="--c:${hueOf(i)}">${mark()}${on ? `<i class="wl-on">${icon('check')}</i>` : ''}</span>`;
   const sourceOf = (row) => (row.kind === 'bip39' ? tx('wallets.kindBip39') : '');
   const needsPassword = () => {
     const status = CK.wallet.status;
@@ -476,7 +479,7 @@
       render(body, flow) {
         body.classList.add('w-setup', 'w-setup--middle', 'wl-legacy');
         const withPassword = CK.wallet.status.method === 'password';
-        body.innerHTML = `<div class="w-setup-mark">${icon('wallet', { fill: true, size: 52 })}</div>
+        body.innerHTML = `${bigMark()}
           ${found.map(() => '<p class="w-note wl-legacy-has"></p>').join('')}
           <p class="w-note wl-legacy-where"></p>
           <p class="w-note wl-legacy-moved" hidden></p>
@@ -635,7 +638,7 @@
       render(body, flow) {
         body.classList.add('w-setup', 'w-setup--middle', 'wl-legacy');
         const withPassword = CK.wallet.status.method === 'password';
-        body.innerHTML = `<div class="w-setup-mark">${icon('wallet', { fill: true, size: 52 })}</div>
+        body.innerHTML = `${bigMark()}
           ${found.map(() => '<p class="w-note wl-legacy-has"></p>').join('')}
           <p class="w-note wl-legacy-where"></p>
           <p class="w-note wl-legacy-moved" hidden></p>

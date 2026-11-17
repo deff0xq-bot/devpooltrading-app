@@ -1,6 +1,8 @@
 (function () {
   'use strict';
   const { icon, t: tx } = CK;
+  const mark = () => (CK.logoMark ? CK.logoMark(24) : icon('wallet', { fill: true }));
+  const hueAttr = () => { const shown = window.DemoWalletList && typeof DemoWalletList.current === 'function' ? DemoWalletList.current() : null; return shown ? ` style="--c:${CK.esc(shown.hue)}"` : ''; };
   const T = CK.ton;
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
@@ -509,7 +511,7 @@
       render(body, flow) {
         body.classList.add('w-setup', 'w-setup--middle');
         body.innerHTML = `
-          <div class="w-setup-mark">${icon('wallet', { fill: true, size: 56 })}</div>
+          <div class="w-setup-mark w-setup-mark--logo"${hueAttr()}>${mark()}</div>
           <p class="w-note">${tx('walletMove.text')}</p>
           <p class="w-note w-move-moved" hidden></p>
           <p class="w-note w-move-left" hidden></p>
