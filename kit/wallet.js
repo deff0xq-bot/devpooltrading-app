@@ -2175,13 +2175,21 @@
   function evmOwnWrite(own, evm) {
     try { if (own) localStorage.setItem(EVM_OWN_KEY + own, evm); } catch (_) { }
   }
-  const withEvmKey = (fn, options) => withEvmWords(async (words, own) => {
+  const withEvmKey = (fn, options, ordered) => withEvmWords(async (words, own) => {
     const evm = netApi('evm');
-    const key = await evm.keyOf(await evm.bundle(), words);
+    const lib = await evm.bundle();
+    const key = await evm.keyOf(lib, words);
+    const ctx = orderContext('evm', lib, words, own);
     try {
       evmOwnWrite(own, key.address);
-      return await fn(key, own);
+      const wanted = orderWanted.has('evm:' + own);
+      const top = wanted ? orderWanted.get('evm:' + own) : -1;
+      if ((ordered === true || wanted) && evmAheadShort(own, key.address, top)) {
+        await evmAheadFill(lib, words, own, key.address, top).then(() => orderWanted.delete('evm:' + own)).catch(() => null);
+      }
+      return await fn(key, own, orderTools(ctx));
     } finally {
+      ctx.close();
       key.privateKey.fill(0);
     }
   }, options);
@@ -2290,7 +2298,7 @@
     })().catch(() => null).finally(() => { altFillJob = null; });
     return altFillJob;
   }
-  const withNetKey = (net, fn, options) => {
+  const withNetKey = (net, fn, options, ordered) => {
     if (!NET_OWN[net]) return Promise.reject(fail('bad_intent'));
     let api;
     try { api = netApi(net); } catch (err) { return Promise.reject(err); }
@@ -2299,9 +2307,13 @@
       const key = await api.keyOf(netLib, words);
       const others = [];
       let open = true;
+      const ctx = net === 'sol' ? orderContext('sol', netLib, words, own) : null;
+      const tools = ctx ? orderTools(ctx) : null;
       const more = net === 'sol' ? Object.freeze({
         alt: async (path) => {
-          if (!open || typeof path !== 'string' || !(SOL_ALT_PATHS.has(path) || SOL_HOLD_PATH.test(path))) throw fail('bad_intent');
+          if (!open || typeof path !== 'string') throw fail('bad_intent');
+          if (SOL_ORDER_PATH.test(path)) return tools.order(Number(SOL_ORDER_PATH.exec(path)[1]));
+          if (!(SOL_ALT_PATHS.has(path) || SOL_HOLD_PATH.test(path))) throw fail('bad_intent');
           const one = await api.keyOf(netLib, words, path);
           if (!open) {
             one.privateKey.fill(0);
@@ -2309,22 +2321,66 @@
           }
           others.push(one);
           return one;
-        }
+        },
+        ...tools
       }) : undefined;
       try {
         netOwnWrite(net, own, key.address);
         if (net === 'sol' && (netAltRead(own) || {}).sol !== key.address) await netAltWrite(api, netLib, words, own, key.address).catch(() => null);
         if (net === 'sol' && holdShort(own)) await holdFill(api, netLib, words, own, key.address).catch(() => null);
+        if (net === 'sol' && (ordered === true || orderWanted.has('sol:' + own)) && solAheadShort(own, key.address)) {
+          await solAheadFill(netLib, words, own, key.address).then(() => orderWanted.delete('sol:' + own)).catch(() => null);
+        }
         return await fn(key, own, more);
       } finally {
         open = false;
+        if (ctx) ctx.close();
         key.privateKey.fill(0);
         others.forEach((one) => one.privateKey.fill(0));
       }
     }, options);
   };
+  const ORDER_ACCESS = Object.freeze({ evmOrders: 'evm', solOrders: 'sol' });
+  const ORDER_FILES = Object.freeze({ evmOrders: 'evmOrders.js', solOrders: 'solOrders.js' });
+  const runningScript = (() => {
+    try {
+      const bound = (proto, name) => Function.prototype.call.bind(Object.getOwnPropertyDescriptor(proto, name).get);
+      const current = bound(Document.prototype, 'currentScript');
+      const srcOf = bound(HTMLScriptElement.prototype, 'src');
+      const doc = document;
+      const Url = URL;
+      const origin = String(location.origin);
+      const path = () => {
+        try {
+          const script = current(doc);
+          if (!script) return null;
+          const url = new Url(srcOf(script));
+          return url.origin === origin ? url.pathname : null;
+        } catch (_) {
+          return null;
+        }
+      };
+      const self = path();
+      if (!self) return null;
+      return Object.freeze({ path, folder: self.slice(0, self.lastIndexOf('/') + 1) });
+    } catch (_) {
+      return null;
+    }
+  })();
+  function askedByOwnFile(net) {
+    if (!runningScript) return false;
+    const path = runningScript.path();
+    return path !== null && path === runningScript.folder + ORDER_FILES[net];
+  }
   function keyAccess(net) {
-    if (keyClosed || typeof net !== 'string' || !Object.prototype.hasOwnProperty.call(NET_API, net) || keyTaken.has(net)) return null;
+    if (keyClosed || typeof net !== 'string' || keyTaken.has(net)) return null;
+    if (Object.prototype.hasOwnProperty.call(ORDER_ACCESS, net)) {
+      if (!askedByOwnFile(net)) return null;
+      keyTaken.add(net);
+      const family = ORDER_ACCESS[net];
+      return Object.freeze(family === 'evm' ? (fn, options) => withEvmKey(fn, options, true) : (fn, options) => withNetKey(family, fn, options, true));
+    }
+    if (!Object.prototype.hasOwnProperty.call(NET_API, net)) return null;
     keyTaken.add(net);
     return Object.freeze(net === 'evm' ? (fn, options) => withEvmKey(fn, options) : (fn, options) => withNetKey(net, fn, options));
   }
@@ -2334,6 +2390,694 @@
     if (local || !(options || {}).unlock) return local;
     return withNetKey(net, (key) => key.address, options);
   }
+
+  const EVM_ORDER_BRANCH = Object.freeze([0x8000002c, 0x8000003c, 0x800003e8, 0]);
+  const EVM_ORDER_SLOTS = 128;
+  const SOL_ORDER_ACCOUNT = 2000;
+  const SOL_ORDER_LIMIT = 0x80000000;
+  const SOL_ORDER_PATH = /^order:(0|[1-9]\d{0,9})$/;
+  const EVM_ORDER_CHAINS = Object.freeze({ eth: 1, base: 8453, arbitrum: 42161, bsc: 56, polygon: 137, optimism: 10, avalanche: 43114, ink: 57073, monad: 143, unichain: 130 });
+  const ORDER_AHEAD = 16;
+  const ORDER_LOW = 4;
+  const ORDER_LIST_MAX = 64;
+  const SOL_ORDER_KEYS_MAX = 16;
+  const SOL_ORDER_LOCAL_KEEP = 64;
+  const EVM_ORDER_CLOUD = 'ck_evm_o_';
+  const SOL_ORDER_CLOUD = 'ck_sol_o_';
+  const EVM_ORDER_LOCAL = 'ck-evm-o:';
+  const EVM_AHEAD_LOCAL = 'ck-evm-oa:';
+  const SOL_ORDER_LOCAL = 'ck-sol-o:';
+  const SOL_AHEAD_LOCAL = 'ck-sol-oa:';
+  const ORDER_LIVE = /^[A-Za-z0-9_-]{1,64}$/;
+  const ORDER_UNITS = /^[1-9]\d{0,39}$/;
+  const ORDER_OUT = /^[a-z]{2,8}$/;
+  const EVM_ADDRESS = /^0x[0-9a-f]{40}$/;
+  const EVM_SLOT_TEXT = /^(0|[1-9]\d?|1[01]\d|12[0-7])$/;
+  const SOL_INDEX_TEXT = /^(0|[1-9]\d{0,9})$/;
+  const evmOrderSlot = (n) => Number.isInteger(n) && n >= 0 && n < EVM_ORDER_SLOTS;
+  const solOrderIndex = (n) => Number.isInteger(n) && n >= 0 && n < SOL_ORDER_LIMIT;
+  const orderFamily = (family) => (family === 'evm' ? 'evm' : family === 'sol' || family === 'solana' ? 'sol' : null);
+  function orderPath(family, n) {
+    const f = orderFamily(family);
+    if (f === 'evm' && evmOrderSlot(n)) return `m/44'/60'/1000'/0/${n}`;
+    if (f === 'sol' && solOrderIndex(n)) return `m/44'/501'/2000'/${n}'`;
+    return null;
+  }
+  function orderNet(chain) {
+    if (chain === 'sol' || chain === 'solana') return { family: 'sol', chain: 'sol' };
+    if (typeof chain === 'string' && Object.prototype.hasOwnProperty.call(EVM_ORDER_CHAINS, chain)) return { family: 'evm', chain };
+    const key = Number.isSafeInteger(chain) ? Object.keys(EVM_ORDER_CHAINS).find((name) => EVM_ORDER_CHAINS[name] === chain) : null;
+    return key ? { family: 'evm', chain: key } : null;
+  }
+  const orderHexOf = (own) => (typeof own === 'string' && /^0:[0-9a-f]{64}$/.test(own) ? own.slice(2) : null);
+  const evmOrderCloudKey = (hex, chain) => EVM_ORDER_CLOUD + hex + '_' + chain;
+  const solOrderCloudKey = (hex, n) => SOL_ORDER_CLOUD + hex + '_' + n;
+  const orderLocalGet = (key) => { try { return localStorage.getItem(key); } catch (_) { return null; } };
+  const orderLocalPut = (key, text) => { try { localStorage.setItem(key, text); } catch (_) { } };
+
+  const wipeNode = (node) => {
+    node.wipePrivateData();
+    if (node.chainCode instanceof Uint8Array) node.chainCode.fill(0);
+  };
+  async function evmOrderDerive(lib, words, list, keep) {
+    const seed = await lib.mnemonicToSeedWebcrypto(words.join(' '));
+    let node = null;
+    const out = [];
+    try {
+      node = lib.HDKey.fromMasterSeed(seed);
+      for (const index of EVM_ORDER_BRANCH) {
+        const child = node.deriveChild(index);
+        wipeNode(node);
+        node = child;
+      }
+      for (const n of list) {
+        const child = node.deriveChild(n);
+        try {
+          const privateKey = Uint8Array.from(child.privateKey);
+          const address = lib.addr.fromPrivateKey(privateKey).toLowerCase();
+          if (!keep) privateKey.fill(0);
+          out.push(keep ? { n, address, privateKey } : { n, address });
+        } finally {
+          wipeNode(child);
+        }
+      }
+      return out;
+    } catch (err) {
+      out.forEach((one) => { if (one.privateKey) one.privateKey.fill(0); });
+      throw err;
+    } finally {
+      seed.fill(0);
+      if (node) wipeNode(node);
+    }
+  }
+  function slipStep(netLib, I, index) {
+    const data = new Uint8Array(37);
+    data.set(I.subarray(0, 32), 1);
+    data[33] = ((index >>> 24) & 0x7f) | 0x80;
+    data[34] = (index >>> 16) & 0xff;
+    data[35] = (index >>> 8) & 0xff;
+    data[36] = index & 0xff;
+    const code = I.slice(32);
+    try {
+      return netLib.hmac(netLib.sha512, code, data);
+    } finally {
+      code.fill(0);
+      data.fill(0);
+    }
+  }
+  async function solOrderDerive(netLib, words, list, keep) {
+    const seed = await netLib.mnemonicToSeedWebcrypto(words.join(' '));
+    let branch = null;
+    const out = [];
+    try {
+      branch = netLib.hmac(netLib.sha512, utf8('ed25519 seed'), seed);
+      for (const index of [44, 501, SOL_ORDER_ACCOUNT]) {
+        const next = slipStep(netLib, branch, index);
+        branch.fill(0);
+        branch = next;
+      }
+      for (const n of list) {
+        const I = slipStep(netLib, branch, n);
+        try {
+          const privateKey = Uint8Array.from(I.subarray(0, 32));
+          const address = netLib.base58.encode(netLib.ed25519.getPublicKey(privateKey));
+          if (!keep) privateKey.fill(0);
+          out.push(keep ? { n, address, privateKey } : { n, address });
+        } finally {
+          I.fill(0);
+        }
+      }
+      return out;
+    } catch (err) {
+      out.forEach((one) => { if (one.privateKey) one.privateKey.fill(0); });
+      throw err;
+    } finally {
+      seed.fill(0);
+      if (branch) branch.fill(0);
+    }
+  }
+
+  function orderContext(family, lib, words, own) {
+    const keys = [];
+    const ctx = {
+      family, lib, words, own, open: true,
+      hold(privateKey) { keys.push(privateKey); },
+      close() {
+        ctx.open = false;
+        keys.forEach((one) => one.fill(0));
+        keys.length = 0;
+        ctx.words = null;
+        ctx.lib = null;
+      }
+    };
+    return ctx;
+  }
+  function orderTools(ctx) {
+    const evm = ctx.family === 'evm';
+    const derive = evm ? evmOrderDerive : solOrderDerive;
+    const valid = evm ? evmOrderSlot : solOrderIndex;
+    const order = async (n) => {
+      if (!ctx.open || !valid(n)) throw fail('bad_intent');
+      const [one] = await derive(ctx.lib, ctx.words, [n], true);
+      if (!ctx.open) {
+        one.privateKey.fill(0);
+        throw fail('bad_intent');
+      }
+      ctx.hold(one.privateKey);
+      return Object.freeze({ family: ctx.family, n, path: orderPath(ctx.family, n), address: one.address, privateKey: one.privateKey });
+    };
+    const inside = (job) => async (...args) => {
+      if (!ctx.open) throw fail('bad_intent');
+      return job(...args);
+    };
+    const tools = {
+      order,
+      orderKey: (family, n) => (orderFamily(family) === ctx.family ? order(n) : Promise.reject(fail('bad_intent'))),
+      orderAddressList: inside(async (from, count) => {
+        if (!valid(from) || !Number.isInteger(count) || count < 1 || count > ORDER_LIST_MAX || !valid(from + count - 1)) throw fail('bad_intent');
+        const list = await derive(ctx.lib, ctx.words, Array.from({ length: count }, (_, i) => from + i), false);
+        return Object.freeze(list.map((one) => Object.freeze({ n: one.n, path: orderPath(ctx.family, one.n), address: one.address })));
+      }),
+      orderRecord: inside((entry) => (evm ? evmOrderTake(ctx, entry) : solOrderTake(ctx, entry))),
+      orderSlots: inside(() => (evm ? evmOrderFound(ctx) : solOrderFound(ctx)))
+    };
+    if (!evm) tools.orderDrop = inside((n) => solOrderDrop(ctx, n));
+    return Object.freeze(tools);
+  }
+
+  let orderWrites = Promise.resolve();
+  function orderSerial(job) {
+    const run = orderWrites.then(job, job);
+    orderWrites = run.catch(() => null);
+    return run;
+  }
+  const orderLastWrite = new Map();
+  async function orderCloudGet(key) {
+    const store = cloudStore();
+    if (!store) throw fail('storage_failed');
+    const [err, value] = await tgCall((done) => store.getItem(key, done), cloudMs());
+    if (err) throw fail('storage_failed');
+    return typeof value === 'string' ? value : '';
+  }
+  async function orderCloudSet(key, text) {
+    const store = cloudStore();
+    if (!store || text.length > CLOUD_VALUE_MAX) throw fail('storage_failed');
+    const [err] = await tgCall((done) => store.setItem(key, text, done), cloudMs());
+    if (err) throw fail('storage_failed');
+    return (await orderCloudGet(key)) === text;
+  }
+  async function orderCloudPut(key, text) {
+    if (!(await orderCloudSet(key, text))) throw fail('storage_failed');
+  }
+  async function orderCloudDrop(key) {
+    const store = cloudStore();
+    if (!store || typeof store.removeItem !== 'function') throw fail('storage_failed');
+    const [err] = await tgCall((done) => store.removeItem(key, done), cloudMs());
+    if (err) throw fail('storage_failed');
+  }
+  async function orderCloudValues(keys) {
+    const store = cloudStore();
+    if (!store) return null;
+    try {
+      const out = {};
+      if (typeof store.getItems === 'function') {
+        for (let i = 0; i < keys.length; i += 50) {
+          const part = keys.slice(i, i + 50);
+          const [err, values] = await tgCall((done) => store.getItems(part, done), cloudMs());
+          if (err || !values || typeof values !== 'object') return null;
+          part.forEach((key) => { out[key] = typeof values[key] === 'string' ? values[key] : ''; });
+        }
+        return out;
+      }
+      const got = await Promise.all(keys.map((key) => orderCloudGet(key)));
+      keys.forEach((key, i) => { out[key] = got[i]; });
+      return out;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function evmSlotsParse(text) {
+    if (!text) return {};
+    let rec;
+    try { rec = JSON.parse(text); } catch (_) { return null; }
+    if (!rec || typeof rec !== 'object' || Array.isArray(rec)) return null;
+    const out = {};
+    for (const n of Object.keys(rec)) {
+      const v = rec[n];
+      if (!EVM_SLOT_TEXT.test(n) || !Array.isArray(v) || v.length < 1 || v.length > 2 || !Number.isSafeInteger(v[0]) || v[0] < 0) return null;
+      if (v.length === 2 && !(typeof v[1] === 'string' && ORDER_LIVE.test(v[1]))) return null;
+      out[n] = { hi: v[0], live: v.length === 2 ? v[1] : null };
+    }
+    return out;
+  }
+  const evmSlotsText = (slots) => JSON.stringify(Object.fromEntries(Object.keys(slots).map((n) => [n, slots[n].live ? [slots[n].hi, slots[n].live] : [slots[n].hi]])));
+  function evmLocalAll(own) {
+    let rec = null;
+    try { rec = JSON.parse(orderLocalGet(EVM_ORDER_LOCAL + own) || 'null'); } catch (_) { rec = null; }
+    const out = {};
+    if (rec && typeof rec === 'object') {
+      Object.keys(EVM_ORDER_CHAINS).forEach((chain) => {
+        const slots = typeof rec[chain] === 'string' ? evmSlotsParse(rec[chain]) : null;
+        if (slots && Object.keys(slots).length) out[chain] = slots;
+      });
+    }
+    return out;
+  }
+  const evmLocalSlots = (own, chain) => evmLocalAll(own)[chain] || {};
+  function evmLocalSave(own, chain, slots) {
+    const all = evmLocalAll(own);
+    all[chain] = slots;
+    const kept = Object.keys(all).filter((name) => Object.keys(all[name]).length).map((name) => [name, evmSlotsText(all[name])]);
+    orderLocalPut(EVM_ORDER_LOCAL + own, JSON.stringify(Object.fromEntries(kept)));
+  }
+  function evmSlotsMerge(cloud, local, marks) {
+    const out = {};
+    const ns = new Set([...Object.keys(cloud || {}), ...Object.keys(local), ...(marks ? [...marks.keys()].map(String) : [])]);
+    [...ns].map(Number).sort((a, b) => a - b).forEach((n) => {
+      const hi = Math.max(cloud && cloud[n] ? cloud[n].hi : -1, local[n] ? local[n].hi : -1, marks && marks.has(n) ? marks.get(n) : -1);
+      const live = cloud ? (cloud[n] ? cloud[n].live : null) : local[n] ? local[n].live : null;
+      out[n] = { hi, live };
+    });
+    return out;
+  }
+  function evmTop(own) {
+    const all = evmLocalAll(own);
+    return Math.max(-1, ...Object.keys(all).flatMap((chain) => Object.keys(all[chain]).map(Number)));
+  }
+  function evmMarks(marks, ahead) {
+    const out = new Map();
+    if (!marks || typeof marks !== 'object') return out;
+    const rows = Array.isArray(marks) ? marks : marks instanceof Map ? [...marks].map(([address, hi]) => ({ address, hi })) : Object.keys(marks).map((address) => ({ address, hi: marks[address] }));
+    rows.forEach((row) => {
+      if (!row || typeof row !== 'object') return;
+      const hi = typeof row.hi === 'string' && /^\d{1,15}$/.test(row.hi) ? Number(row.hi) : row.hi;
+      const n = Number.isInteger(row.n) ? row.n : typeof row.address === 'string' ? ahead.indexOf(row.address.toLowerCase()) : -1;
+      if (evmOrderSlot(n) && Number.isSafeInteger(hi) && hi >= 0) out.set(n, Math.max(out.has(n) ? out.get(n) : -1, hi));
+    });
+    return out;
+  }
+  function evmAheadRead(own, m) {
+    let rec = null;
+    try { rec = JSON.parse(orderLocalGet(EVM_AHEAD_LOCAL + own) || 'null'); } catch (_) { rec = null; }
+    if (!rec || !m || rec.m !== m || !Array.isArray(rec.a) || rec.a.length > EVM_ORDER_SLOTS) return [];
+    return rec.a.every((one) => typeof one === 'string' && EVM_ADDRESS.test(one) && one !== m) ? rec.a : [];
+  }
+  const evmAheadWant = (own, room, top) => Math.min(EVM_ORDER_SLOTS, Math.max(evmTop(own), evmOrderSlot(top) ? top : -1) + 1 + room);
+  const evmAheadShort = (own, m, top) => evmAheadRead(own, m).length < evmAheadWant(own, ORDER_LOW, top);
+  async function evmAheadFill(lib, words, own, m, top) {
+    const have = evmAheadRead(own, m);
+    const want = evmAheadWant(own, ORDER_AHEAD, top);
+    if (have.length >= want) return;
+    const got = await evmOrderDerive(lib, words, Array.from({ length: want - have.length }, (_, i) => have.length + i), false);
+    orderLocalPut(EVM_AHEAD_LOCAL + own, JSON.stringify({ m, a: have.concat(got.map((one) => one.address)) }));
+  }
+
+  function solRecParse(text) {
+    let v = null;
+    try { v = JSON.parse(text || 'null'); } catch (_) { return null; }
+    if (!v || typeof v !== 'object' || Array.isArray(v) || typeof v.a !== 'string' || !NET_ADDRESS.sol.test(v.a) || !Number.isSafeInteger(v.t) || v.t < 0) return null;
+    const field = (value, re) => (value === undefined ? '' : typeof value === 'string' && re.test(value) ? value : null);
+    const mint = field(v.m, NET_ADDRESS.sol), units = field(v.u, ORDER_UNITS), out = field(v.o, ORDER_OUT), live = field(v.l, ORDER_LIVE);
+    if (mint === null || units === null || out === null || live === null || !(v.x === undefined || v.x === 1)) return null;
+    return { address: v.a, at: v.t, mint, units, out, live: live || null, void: v.x === 1 };
+  }
+  function solRecText(rec) {
+    const out = { a: rec.address, t: rec.at };
+    if (rec.mint) out.m = rec.mint;
+    if (rec.units) out.u = rec.units;
+    if (rec.out) out.o = rec.out;
+    if (rec.live) out.l = rec.live;
+    if (rec.void) out.x = 1;
+    return JSON.stringify(out);
+  }
+  function solLocal(own) {
+    let rec = null;
+    try { rec = JSON.parse(orderLocalGet(SOL_ORDER_LOCAL + own) || 'null'); } catch (_) { rec = null; }
+    const out = { n: 0, h: {} };
+    if (!rec || typeof rec !== 'object') return out;
+    if (Number.isInteger(rec.n) && rec.n >= 0 && rec.n <= SOL_ORDER_LIMIT) out.n = rec.n;
+    if (rec.h && typeof rec.h === 'object') {
+      Object.keys(rec.h).forEach((k) => {
+        const one = SOL_INDEX_TEXT.test(k) && solOrderIndex(Number(k)) && typeof rec.h[k] === 'string' ? solRecParse(rec.h[k]) : null;
+        if (!one) return;
+        out.h[k] = one;
+        out.n = Math.max(out.n, Number(k) + 1);
+      });
+    }
+    return out;
+  }
+  function solLocalSave(own, rec) {
+    const kept = Object.keys(rec.h).map(Number).sort((a, b) => a - b).slice(-SOL_ORDER_LOCAL_KEEP).map((n) => [n, solRecText(rec.h[n])]);
+    orderLocalPut(SOL_ORDER_LOCAL + own, JSON.stringify({ n: rec.n, h: Object.fromEntries(kept) }));
+  }
+  async function solOrderList(own) {
+    const store = cloudStore();
+    const hex = orderHexOf(own);
+    const none = { heard: false, indexes: [] };
+    if (!store || !hex || typeof store.getKeys !== 'function') return none;
+    try {
+      const [err, keys] = await tgCall((done) => store.getKeys(done), cloudMs());
+      if (err || !Array.isArray(keys)) return none;
+      const head = SOL_ORDER_CLOUD + hex + '_';
+      const indexes = new Set();
+      keys.forEach((key) => {
+        const rest = typeof key === 'string' && key.startsWith(head) ? key.slice(head.length) : '';
+        if (SOL_INDEX_TEXT.test(rest) && solOrderIndex(Number(rest))) indexes.add(Number(rest));
+      });
+      return { heard: true, indexes: [...indexes].sort((a, b) => a - b) };
+    } catch (_) {
+      return none;
+    }
+  }
+  const solNext = (local, indexes) => Math.max(local.n, indexes.length ? indexes[indexes.length - 1] + 1 : 0);
+  function solAheadRead(own, sol) {
+    let rec = null;
+    try { rec = JSON.parse(orderLocalGet(SOL_AHEAD_LOCAL + own) || 'null'); } catch (_) { rec = null; }
+    if (!rec || !sol || rec.sol !== sol || !solOrderIndex(rec.from) || !Array.isArray(rec.a) || !rec.a.length || rec.a.length > ORDER_LIST_MAX) return null;
+    return rec.a.every((one) => typeof one === 'string' && NET_ADDRESS.sol.test(one) && one !== sol) ? rec : null;
+  }
+  function solAheadShort(own, sol) {
+    const rec = solAheadRead(own, sol);
+    const next = solLocal(own).n;
+    return !rec || next < rec.from || next + ORDER_LOW > rec.from + rec.a.length;
+  }
+  async function solAheadFill(netLib, words, own, sol) {
+    if (!solAheadShort(own, sol)) return;
+    const from = solLocal(own).n;
+    const count = Math.min(ORDER_AHEAD, SOL_ORDER_LIMIT - from);
+    if (count < 1) return;
+    const list = await solOrderDerive(netLib, words, Array.from({ length: count }, (_, i) => from + i), false);
+    orderLocalPut(SOL_AHEAD_LOCAL + own, JSON.stringify({ sol, from, a: list.map((one) => one.address) }));
+  }
+
+  function orderTicket(family, chain, n, planAt, slot, undo) {
+    const token = {};
+    orderLastWrite.set(slot, token);
+    let state = 'open';
+    let gone = null;
+    const stale = () => Date.now() - planAt > PLAN_LIFE_MS;
+    const forget = () => {
+      if (state === 'sent') return Promise.resolve();
+      if (!gone) {
+        state = 'gone';
+        gone = orderSerial(async () => {
+          if (orderLastWrite.get(slot) !== token) return;
+          await undo();
+          orderLastWrite.delete(slot);
+        }).catch(() => null);
+      }
+      return gone.then(() => undefined);
+    };
+    return Object.freeze({
+      family, chain, n,
+      stale,
+      sent: () => state === 'sent',
+      async keep() {
+        if (state === 'gone') throw fail('quote_stale');
+        if (stale()) {
+          if (state === 'open') await forget();
+          throw fail('quote_stale');
+        }
+        state = 'sent';
+      },
+      forget
+    });
+  }
+  function orderPlanAt(entry) {
+    const planAt = entry.planAt;
+    if (typeof planAt !== 'number' || !Number.isFinite(planAt) || planAt > Date.now() + 1000) throw fail('bad_intent');
+    if (Date.now() - planAt > PLAN_LIFE_MS) throw fail('quote_stale');
+    return planAt;
+  }
+  async function evmOrderTake(ctx, entry) {
+    const e = entry && typeof entry === 'object' ? entry : {};
+    const c = orderNet(e.chain);
+    const { n, hi, from } = e;
+    if (!c || c.family !== 'evm' || !evmOrderSlot(n) || !Number.isSafeInteger(hi) || hi < 0) throw fail('bad_intent');
+    if (!(e.live === undefined || e.live === null || (typeof e.live === 'string' && ORDER_LIVE.test(e.live)))) throw fail('bad_intent');
+    if (!(from === undefined || (Number.isSafeInteger(from) && from >= 0 && from <= hi))) throw fail('bad_intent');
+    const planAt = orderPlanAt(e);
+    const own = ctx.own;
+    const hex = orderHexOf(own);
+    if (!hex) throw fail('no_wallet');
+    const key = evmOrderCloudKey(hex, c.chain);
+    return orderSerial(async () => {
+      if (Date.now() - planAt > PLAN_LIFE_MS) throw fail('quote_stale');
+      const cloud = evmSlotsParse(await orderCloudGet(key));
+      if (!cloud) throw fail('storage_failed');
+      const local = evmLocalSlots(own, c.chain);
+      const was = { cloud: cloud[n] || null, local: local[n] || null };
+      const signed = Math.max(was.cloud ? was.cloud.hi : -1, was.local ? was.local.hi : -1);
+      if (from !== undefined && signed >= from) throw fail('xorder_no_slot', { reason: 'used' });
+      const put = { hi: Math.max(hi, signed), live: e.live === undefined ? (was.cloud ? was.cloud.live : null) : e.live };
+      cloud[n] = put;
+      const text = evmSlotsText(cloud);
+      if (text.length > CLOUD_VALUE_MAX) throw fail('xorder_no_slot', { reason: 'full' });
+      await orderCloudPut(key, text);
+      evmLocalSave(own, c.chain, { ...local, [n]: put });
+      return orderTicket('evm', c.chain, n, planAt, 'evm:' + c.chain + ':' + n, async () => {
+        const mine = evmLocalSlots(own, c.chain);
+        if (mine[n] && mine[n].hi === put.hi && mine[n].live === put.live) {
+          if (was.local) mine[n] = was.local;
+          else delete mine[n];
+          evmLocalSave(own, c.chain, mine);
+        }
+        const now = evmSlotsParse(await orderCloudGet(key));
+        if (!now || !now[n] || now[n].hi !== put.hi || now[n].live !== put.live) return;
+        if (was.cloud) now[n] = was.cloud;
+        else delete now[n];
+        if (Object.keys(now).length) await orderCloudPut(key, evmSlotsText(now));
+        else await orderCloudDrop(key);
+      });
+    });
+  }
+  async function solOrderTake(ctx, entry) {
+    const e = entry && typeof entry === 'object' ? entry : {};
+    const n = e.n;
+    const field = (value, re) => (value === undefined || value === null || value === '' ? '' : typeof value === 'string' && re.test(value) ? value : null);
+    const fields = { mint: field(e.mint, NET_ADDRESS.sol), units: field(typeof e.units === 'bigint' ? e.units.toString() : e.units, ORDER_UNITS), out: field(e.out, ORDER_OUT), live: field(e.live, ORDER_LIVE) };
+    if (!solOrderIndex(n) || Object.values(fields).some((one) => one === null)) throw fail('bad_intent');
+    const planAt = orderPlanAt(e);
+    const own = ctx.own;
+    const hex = orderHexOf(own);
+    if (!hex) throw fail('no_wallet');
+    const [one] = await solOrderDerive(ctx.lib, ctx.words, [n], false);
+    const key = solOrderCloudKey(hex, n);
+    return orderSerial(async () => {
+      if (Date.now() - planAt > PLAN_LIFE_MS) throw fail('quote_stale');
+      const list = await solOrderList(own);
+      if (!list.heard) throw fail('storage_failed');
+      const local = solLocal(own);
+      if (list.indexes.includes(n) || local.h[n]) throw fail('xorder_no_slot', { reason: 'taken' });
+      if (n < solNext(local, list.indexes)) throw fail('xorder_no_slot', { reason: 'used' });
+      if (list.indexes.length >= SOL_ORDER_KEYS_MAX) throw fail('xorder_no_slot', { reason: 'full' });
+      const rec = { address: one.address, at: nowSeconds(), mint: fields.mint, units: fields.units, out: fields.out, live: fields.live || null, void: false };
+      local.h[n] = rec;
+      local.n = Math.max(local.n, n + 1);
+      solLocalSave(own, local);
+      if (!(await orderCloudSet(key, solRecText(rec)))) throw fail('xorder_no_slot', { reason: 'taken' });
+      return orderTicket('sol', 'sol', n, planAt, 'sol:' + n, async () => {
+        const gave = { ...rec, live: null, void: true };
+        const mine = solLocal(own);
+        if (mine.h[n] && mine.h[n].address === rec.address && mine.h[n].at === rec.at) {
+          mine.h[n] = gave;
+          solLocalSave(own, mine);
+        }
+        const now = solRecParse(await orderCloudGet(key));
+        if (now && now.address === rec.address && now.at === rec.at && !now.void) await orderCloudPut(key, solRecText(gave));
+      });
+    });
+  }
+  async function solOrderDrop(ctx, n) {
+    if (!solOrderIndex(n)) throw fail('bad_intent');
+    const hex = orderHexOf(ctx.own);
+    if (!hex) throw fail('no_wallet');
+    return orderSerial(async () => {
+      const list = await solOrderList(ctx.own);
+      if (!list.heard) throw fail('storage_failed');
+      if (!list.indexes.includes(n)) return false;
+      if (n === list.indexes[list.indexes.length - 1]) throw fail('bad_intent', { reason: 'newest' });
+      const key = solOrderCloudKey(hex, n);
+      const rec = solRecParse(await orderCloudGet(key));
+      if (rec && rec.live) throw fail('bad_intent', { reason: 'live' });
+      await orderCloudDrop(key);
+      const local = solLocal(ctx.own);
+      delete local.h[n];
+      solLocalSave(ctx.own, local);
+      return true;
+    });
+  }
+
+  async function evmOrderFound(ctx) {
+    const hex = orderHexOf(ctx.own);
+    const chains = Object.keys(EVM_ORDER_CHAINS);
+    const values = hex ? await orderCloudValues(chains.map((chain) => evmOrderCloudKey(hex, chain))) : null;
+    let heard = !!values;
+    const found = [];
+    chains.forEach((chain) => {
+      const cloud = values ? evmSlotsParse(values[evmOrderCloudKey(hex, chain)]) : null;
+      if (values && !cloud) heard = false;
+      const slots = evmSlotsMerge(cloud, evmLocalSlots(ctx.own, chain), null);
+      Object.keys(slots).forEach((n) => found.push({ chain, n: Number(n), hi: slots[n].hi, live: slots[n].live }));
+    });
+    const ns = [...new Set(found.map((one) => one.n))].sort((a, b) => a - b);
+    if (!ctx.open) throw fail('bad_intent');
+    const derived = new Map((ns.length ? await evmOrderDerive(ctx.lib, ctx.words, ns, false) : []).map((one) => [one.n, one.address]));
+    return Object.freeze({ heard, slots: Object.freeze(found.map((one) => Object.freeze({ ...one, path: orderPath('evm', one.n), address: derived.get(one.n) }))) });
+  }
+  async function solOrderFound(ctx) {
+    const hex = orderHexOf(ctx.own);
+    const list = await solOrderList(ctx.own);
+    const values = list.heard ? (list.indexes.length ? await orderCloudValues(list.indexes.map((n) => solOrderCloudKey(hex, n))) : {}) : null;
+    const local = solLocal(ctx.own);
+    const recs = new Map(Object.keys(local.h).map((k) => [Number(k), local.h[k]]));
+    if (values) {
+      list.indexes.forEach((n) => {
+        const one = solRecParse(values[solOrderCloudKey(hex, n)]);
+        if (one || !recs.has(n)) recs.set(n, one);
+      });
+    }
+    const ns = [...recs.keys()].sort((a, b) => a - b);
+    if (!ctx.open) throw fail('bad_intent');
+    const derived = new Map((ns.length ? await solOrderDerive(ctx.lib, ctx.words, ns, false) : []).map((one) => [one.n, one.address]));
+    const slots = ns.map((n) => {
+      const rec = recs.get(n) || { mint: '', units: '', out: '', live: null, at: 0, void: false };
+      return Object.freeze({ n, path: orderPath('sol', n), address: derived.get(n), mint: rec.mint, units: rec.units, out: rec.out, live: rec.live, at: rec.at, void: rec.void });
+    });
+    return Object.freeze({ heard: list.heard && !!values, slots: Object.freeze(slots) });
+  }
+
+  const orderWanted = new Map();
+  const orderWant = (family, own, top) => {
+    const name = family + ':' + own;
+    orderWanted.set(name, Math.max(orderWanted.has(name) ? orderWanted.get(name) : -1, Number.isInteger(top) ? top : -1));
+  };
+  async function orderFill(family, own, top) {
+    try {
+      const blob = await activeBlob();
+      if (blob.a !== own) return false;
+      if (blob.w !== 'keychain' || signing) {
+        orderWant(family, own, top);
+        return false;
+      }
+      let read = false;
+      await openSealed(blob, undefined, async ({ lib, words }) => {
+        if (!multiNet(lib.mnemonicWordList, words)) return;
+        const api = netApi(family);
+        const netLib = await api.bundle();
+        const main = (family === 'evm' ? evmOwnRead(own) : netOwnRead('sol', own)) || (await api.deriveAddress(netLib, words));
+        if (family === 'evm') {
+          evmOwnWrite(own, main);
+          await evmAheadFill(netLib, words, own, main, top);
+        } else {
+          netOwnWrite('sol', own, main);
+          await solAheadFill(netLib, words, own, main);
+        }
+        read = true;
+      }, true);
+      return read;
+    } catch (_) {
+      orderWant(family, own, top);
+      return false;
+    }
+  }
+  async function evmOrderLook(own, chain, marks) {
+    const hex = orderHexOf(own);
+    const cloud = await orderCloudGet(evmOrderCloudKey(hex, chain)).then(evmSlotsParse, () => null);
+    let local = evmLocalSlots(own, chain);
+    if (cloud) {
+      local = evmSlotsMerge(cloud, local, null);
+      evmLocalSave(own, chain, local);
+    }
+    const m = evmOwnRead(own);
+    const ahead = evmAheadRead(own, m);
+    const slots = evmSlotsMerge(cloud, local, evmMarks(marks, ahead));
+    const used = Object.keys(slots).map(Number).map((n) => (slots[n].live ? { n, address: ahead[n] || null, hi: slots[n].hi, live: slots[n].live } : { n, address: ahead[n] || null, hi: slots[n].hi }));
+    const free = [];
+    for (let n = 0; n < ahead.length && free.length < ORDER_AHEAD; n++) if (!slots[n]) free.push({ n, address: ahead[n] });
+    const top = Math.max(-1, ...used.map((row) => row.n));
+    const short = !m || ahead.length < evmAheadWant(own, ORDER_LOW, top);
+    return { rows: Object.freeze([...used, ...free].map((row) => Object.freeze(row))), short, top };
+  }
+  async function solOrderLook(own) {
+    const hex = orderHexOf(own);
+    const list = await solOrderList(own);
+    const local = solLocal(own);
+    const recs = new Map(Object.keys(local.h).map((k) => [Number(k), local.h[k]]));
+    const missing = list.indexes.filter((n) => !recs.has(n));
+    const values = missing.length ? await orderCloudValues(missing.map((n) => solOrderCloudKey(hex, n))) : null;
+    missing.forEach((n) => {
+      const one = values ? solRecParse(values[solOrderCloudKey(hex, n)]) : null;
+      recs.set(n, one);
+      if (one) local.h[n] = one;
+    });
+    const next = solNext(local, list.indexes);
+    if (list.heard && (next !== local.n || missing.length)) {
+      local.n = next;
+      solLocalSave(own, local);
+    }
+    const sol = netOwnRead('sol', own);
+    const ahead = solAheadRead(own, sol);
+    const used = [...recs.keys()].sort((a, b) => a - b).map((n) => {
+      const rec = recs.get(n);
+      return rec && rec.live ? { n, address: rec.address, live: rec.live } : { n, address: rec ? rec.address : null };
+    });
+    const free = [];
+    if (ahead) for (let i = 0; i < ahead.a.length && free.length < ORDER_AHEAD; i++) if (ahead.from + i >= next && !recs.has(ahead.from + i)) free.push({ n: ahead.from + i, address: ahead.a[i] });
+    return { rows: Object.freeze([...used, ...free].map((row) => Object.freeze(row))), short: !sol || solAheadShort(own, sol), top: -1 };
+  }
+  async function orderAddresses(chain, options) {
+    const opts = options || {};
+    const c = orderNet(chain);
+    if (!c) throw fail('bad_intent');
+    const own = (T.wallet && T.wallet.address) || null;
+    if (!orderHexOf(own)) throw fail('no_wallet');
+    if (opts.wallet && opts.wallet !== own) throw fail('wallet_changed');
+    const look = () => (c.family === 'evm' ? evmOrderLook(own, c.chain, opts.marks) : solOrderLook(own));
+    let seen = await look();
+    if (seen.short && opts.fill !== false && (await orderFill(c.family, own, seen.top))) seen = await look();
+    return seen.rows;
+  }
+  function orderLive(chain, n, id, options) {
+    const c = orderNet(chain);
+    const own = (T.wallet && T.wallet.address) || null;
+    const hex = orderHexOf(own);
+    const opts = options || {};
+    if (!c || !(id === null || (typeof id === 'string' && ORDER_LIVE.test(id))) || !(c.family === 'evm' ? evmOrderSlot(n) : solOrderIndex(n))) return Promise.reject(fail('bad_intent'));
+    if (!hex) return Promise.reject(fail('no_wallet'));
+    if (opts.wallet && opts.wallet !== own) return Promise.reject(fail('wallet_changed'));
+    return orderSerial(async () => {
+      if (c.family === 'evm') {
+        const key = evmOrderCloudKey(hex, c.chain);
+        const cloud = evmSlotsParse(await orderCloudGet(key));
+        if (!cloud) throw fail('storage_failed');
+        const local = evmLocalSlots(own, c.chain);
+        if (!cloud[n] && !local[n]) throw fail('bad_intent');
+        const put = { hi: Math.max(cloud[n] ? cloud[n].hi : -1, local[n] ? local[n].hi : -1), live: id };
+        orderLastWrite.set('evm:' + c.chain + ':' + n, {});
+        if (!cloud[n] || cloud[n].hi !== put.hi || cloud[n].live !== id) {
+          cloud[n] = put;
+          const text = evmSlotsText(cloud);
+          if (text.length > CLOUD_VALUE_MAX) throw fail('xorder_no_slot', { reason: 'full' });
+          await orderCloudPut(key, text);
+        }
+        evmLocalSave(own, c.chain, { ...local, [n]: put });
+        return;
+      }
+      const key = solOrderCloudKey(hex, n);
+      const rec = solRecParse(await orderCloudGet(key));
+      if (!rec || (rec.void && id)) throw fail('bad_intent');
+      const put = { ...rec, live: id };
+      orderLastWrite.set('sol:' + n, {});
+      if (rec.live !== id) await orderCloudPut(key, solRecText(put));
+      const local = solLocal(own);
+      local.h[n] = put;
+      local.n = Math.max(local.n, n + 1);
+      solLocalSave(own, local);
+    });
+  }
+
   let othersJob = null;
   function deriveOthers(words, own) {
     if (!own || !Array.isArray(words) || !WORD_COUNTS.includes(words.length)) return othersJob;
@@ -4969,6 +5713,9 @@
     evmDepositAddress,
     evmRecordRepair: (evm) => evmRecordWrite((T.wallet && T.wallet.address) || null, evm).catch(() => null),
     keyAccess,
+    orderAddresses,
+    orderLive,
+    orderPath,
     netAddress,
     netAlt,
     netAltFill,
