@@ -79,9 +79,9 @@
     const v = figuresOf(f);
     const waiting = f.server === null;
     const paid = [
-      cell('fees.tonSwap', { icon: 'swap', sub: 'fees.subTon', name: 'tonSwap', text: v.tonSwap }, waiting),
+      cell('fees.tonSwap', { icon: 'exchange', sub: 'fees.subTon', name: 'tonSwap', text: v.tonSwap }, waiting),
       cell('fees.buyOther', { icon: 'arrow-down-left', sub: 'fees.subBuy', name: 'buyOther', text: v.buyOther }, waiting),
-      cell('fees.route', { icon: 'layers', sub: 'fees.subRoute', name: 'route', text: v.route, note: 'fees.step' }, waiting),
+      cell('fees.route', { icon: 'exchange', sub: 'fees.subRoute', name: 'route', text: v.route, note: 'fees.step' }, waiting),
       cell('fees.orders', { icon: 'target', sub: 'fees.subOrders', name: 'orders', text: v.orders }, waiting),
       p2pShown() ? cell('fees.p2p', { icon: 'users', sub: 'fees.subP2p', name: 'p2p', text: v.p2p }, waiting) : ''
     ];

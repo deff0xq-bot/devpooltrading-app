@@ -1801,10 +1801,9 @@
     const tapAt = plan ? performance.now() : 0;
     const fav = ctx.favAction ? ctx.favAction(inst) : null;
     const bell = ctx.alertAction ? ctx.alertAction(inst) : null;
-    if (bell && window.DemoAlerts && typeof DemoAlerts.has === 'function') bell.lit = () => DemoAlerts.has(inst);
     const share = ctx.shareAction ? ctx.shareAction(inst) : null;
     const copyItem = o.address ? { icon: 'copy', label: tr('common.copyAddress'), onClick: () => copyAddress() } : null;
-    const rare = [bell].concat(o.actions || [], copyItem).filter(Boolean);
+    const rare = (o.actions || []).concat(copyItem).filter(Boolean);
     const menu = rare.length ? { icon: 'more', label: tr('common.menu'), onClick(btn) { openMenu(o.title, rare, btn); } } : null;
     const actions = [menu, fav].filter(Boolean);
     const screen = CK.screen({ title: '', large: false, titleHtml: '<span class="detail-title"></span>', actions });
@@ -1844,6 +1843,7 @@
       <div class="screen-pad tk-acts" hidden>
         <button class="cell press-row tk-orders" type="button" hidden><span class="cell-main"><span class="cell-title" ${L('detail.orders')}>${tx('detail.orders')}</span><span class="tk-orders-sub" ${L('tk.buyFirst')} hidden>${tx('tk.buyFirst')}</span></span>${icon('shield', { size: 22 })}</button>
         <button class="tk-act press-row" type="button" data-act="share" hidden>${icon('share', { size: 22 })}<span ${L('share.aria')}>${tx('share.aria')}</span></button>
+        <button class="tk-act press-row" type="button" data-act="alert" aria-pressed="false" hidden>${icon('bell', { size: 22 })}<span ${L('alerts.tile')}>${tx('alerts.tile')}</span></button>
       </div>
       <section class="section tk-sec tk-ops" hidden>
         <div class="section-head"><h2 class="section-title" ${L('common.history')}>${tx('common.history')}</h2><button class="section-link tk-ops-all" type="button" ${L('tk.seeAll')}>${tx('tk.seeAll')}</button></div>
@@ -1940,16 +1940,31 @@
 
     const acts = $('.tk-acts', body);
     const shareAct = $('[data-act="share"]', acts);
+    const alertAct = $('[data-act="alert"]', acts);
     const ordersRow = $('.tk-orders', acts), ordersWord = $('.cell-title', ordersRow), ordersSub = $('.tk-orders-sub', ordersRow);
+    const alertWaits = () => !!(bell && window.DemoAlerts && typeof DemoAlerts.has === 'function' && DemoAlerts.has(inst));
+    let bellLit = false;
+    const paintBell = () => {
+      const on = alertWaits();
+      if (on === bellLit) return;
+      bellLit = on;
+      alertAct.setAttribute('aria-pressed', String(on));
+      alertAct.innerHTML = `${icon('bell', { fill: on, size: 22 })}<span ${L('alerts.tile')}>${tx('alerts.tile')}</span>`;
+    };
     function paintActs() {
       shareAct.hidden = !share;
-      showSection(acts, !(ordersRow.hidden && shareAct.hidden));
+      alertAct.hidden = !bell;
+      showSection(acts, !(ordersRow.hidden && shareAct.hidden && alertAct.hidden));
     }
     acts.addEventListener('click', (e) => {
       const b = e.target.closest('[data-act]');
-      if (b && b.dataset.act === 'share' && share) share.onClick(b);
+      if (!b) return;
+      if (b.dataset.act === 'share' && share) share.onClick(b);
+      else if (b.dataset.act === 'alert' && bell) bell.onClick(b);
     });
+    paintBell();
     paintActs();
+    const stopBell = bell && window.DemoAlerts && typeof DemoAlerts.onChange === 'function' ? DemoAlerts.onChange(paintBell) : () => {};
     const stopMode = () => {
       const S = window.DemoSwap;
       if (!S) return null;
@@ -2011,7 +2026,7 @@
     const stopCost = window.DemoCost ? DemoCost.onChange(paintHeldAndCost) : () => {};
     const stopOrdersWatch = window.DemoSwap ? DemoSwap.onChange(paintOrders) : () => {};
     const costTimer = setInterval(() => { if (!heldRow.hidden) paintHeldAndCost(); }, 2000);
-    const stopHeld = () => { stopBalances(); stopCost(); stopOrdersWatch(); clearInterval(costTimer); };
+    const stopHeld = () => { stopBalances(); stopCost(); stopOrdersWatch(); stopBell(); clearInterval(costTimer); };
 
     const copyAddress = () => {
       CK.copyText(o.address.address).then((copied) => {
@@ -2178,7 +2193,7 @@
       const plus = swap ? gotThis : e.kind === 'in';
       const cheque = !swap && e.kind === 'out' && window.DemoCheques && typeof DemoCheques.isCheque === 'function' && DemoCheques.isCheque(e.counterparty);
       const state = e.pending ? tx('walletFlow.pending') : e.failed ? tx('walletFlow.failed') : '';
-      const glyph = swap ? 'swap-circle' : cheque ? 'gift' : plus ? 'receive' : 'send';
+      const glyph = swap ? 'exchange' : cheque ? 'gift' : plus ? 'deposit' : 'withdraw';
       const row = CK.el(`<div class="cell tk-op" role="listitem"><span class="tk-op-tile" aria-hidden="true">${icon(glyph, { size: 20 })}</span><span class="cell-main"><span class="tk-op-title"></span><span class="tk-op-sub"></span></span><span class="tk-op-amount"></span></div>`);
       row.dataset.key = e.key;
       $('.tk-op-title', row).textContent = swap ? tx('action.swap') : cheque ? tx('cheque.row') : tx(plus ? 'tk.opIn' : 'tk.opOut');

@@ -545,7 +545,7 @@
     get armed() { return armed(); }
   };
 
-  const LAUNCH_MAX_MS = 1800, MIN_SHOW_MS = 650, SPLASH_HARD_MS = 12000, AVA_AT = .7;
+  const LAUNCH_MAX_MS = 1800, MIN_SHOW_MS = 900, MARK_MS = 780, SPLASH_HARD_MS = 12000;
   (function launchEntrance() {
     const raf = typeof window.requestAnimationFrame === 'function' ? window.requestAnimationFrame.bind(window) : null;
     const splash = typeof doc.getElementById === 'function' ? doc.getElementById('dp-splash') : null;
@@ -554,8 +554,11 @@
       if (!headerHeld) return;
       headerHeld = false;
       try { doc.dispatchEvent(new Event('ck:launch-header')); } catch (_) { }
+      try { if (CK.tg && typeof CK.tg.repaint === 'function') CK.tg.repaint(); } catch (_) { }
     };
+    let unwatch = noop;
     const dropSplash = () => {
+      unwatch();
       if (splash && splash.isConnected !== false && typeof splash.remove === 'function') splash.remove();
       if (root && root.classList) root.classList.remove('sp-on');
       freeHeader();
@@ -580,6 +583,54 @@
     const calm = reduced();
     if (!splash && (calm || hiddenPage())) return;
     if (!calm) root.classList.add('motion-launch');
+    const splashMark = splash && typeof splash.querySelector === 'function' ? splash.querySelector('.sp-m') : null;
+    let glide = null;
+    const glideOffset = (cs) => {
+      const m = glide && /^matrix(3d)?\(([^)]+)\)$/.exec(cs.transform || '');
+      if (!m) return [0, 0];
+      const v = m[2].split(',').map(Number);
+      return m[1] ? [v[12] || 0, v[13] || 0] : [v[4] || 0, v[5] || 0];
+    };
+    const stopGlide = () => {
+      if (glide) { try { glide.cancel(); } catch (_) { } }
+      glide = null;
+    };
+    const holdMark = () => {
+      unwatch();
+      if (!splashMark) return;
+      const cs = getComputedStyle(splashMark), off = glideOffset(cs);
+      const x = parseFloat(cs.left) + off[0], y = parseFloat(cs.top) + off[1];
+      stopGlide();
+      if (isFinite(x) && isFinite(y)) {
+        splashMark.style.left = `${hundredths(x)}px`;
+        splashMark.style.top = `${hundredths(y)}px`;
+      }
+    };
+    if (splashMark && !calm && typeof window.addEventListener === 'function') {
+      const placeOf = () => {
+        const cs = getComputedStyle(splashMark), at = [parseFloat(cs.left), parseFloat(cs.top)];
+        return isFinite(at[0]) && isFinite(at[1]) ? { at, cs } : null;
+      };
+      let home = placeOf();
+      const resized = () => {
+        const seen = placeOf();
+        if (!seen) return;
+        const from = home, off = glideOffset(seen.cs), to = seen.at;
+        home = seen;
+        if (!from) return;
+        const dx = from.at[0] + off[0] - to[0], dy = from.at[1] + off[1] - to[1];
+        stopGlide();
+        if ((Math.abs(dx) < .5 && Math.abs(dy) < .5) || root.classList.contains('tg-settling')) return;
+        try {
+          glide = splashMark.animate([{ transform: `translate3d(${hundredths(dx)}px, ${hundredths(dy)}px, 0)` }, { transform: 'none' }], { duration: 360, easing: SOFT.ease });
+        } catch (_) { }
+      };
+      window.addEventListener('resize', resized);
+      unwatch = () => {
+        unwatch = noop;
+        if (typeof window.removeEventListener === 'function') window.removeEventListener('resize', resized);
+      };
+    }
     if (splash && CK.tg && CK.tg.ready) {
       raf(() => setTimeout(() => {
         if (CK.tg.inside && toldAt < 0) toldAt = now();
@@ -612,60 +663,48 @@
     };
     const BAR_FRAMES = [{ opacity: 0, transform: 'translate3d(0, 18px, 0)' }, { opacity: 1, transform: 'none' }];
 
-    function splashOut(screen, parts, bar) {
+    function splashOut(parts, bar) {
       const q = (s) => splash.querySelector(s);
-      const L = q('.sp-l'), R = q('.sp-r'), TL = q('.sp-tl'), TR = q('.sp-tr'), M = q('.sp-m'), K = q('.sp-k'), C = q('.sp-c'), G = q('.sp-g'), B = q('.sp-bg');
+      const L = q('.sp-l'), R = q('.sp-r'), K = q('.sp-k'), W = q('.sp-w'), B = q('.sp-b'), G = q('.sp-g'), BG = q('.sp-bg');
       const go = (el, kf, t) => {
         if (!el) return;
         try { el.animate(kf, Object.assign({ easing: SOFT.ease, fill: 'both' }, t)); } catch (_) { }
       };
-      const snap = (el) => {
+      const take = (el) => {
         if (!el) return null;
-        const cs = getComputedStyle(el);
-        return { transform: cs.transform, opacity: cs.opacity };
+        const cs = getComputedStyle(el), s = { transform: cs.transform, opacity: cs.opacity };
+        el.style.animation = 'none';
+        return s;
       };
-      const sL = snap(L), sR = snap(R), sTL = snap(TL), sTR = snap(TR);
-      [L, R, TL, TR].forEach((el) => { if (el) el.style.animation = 'none'; });
+      const sL = take(L), sR = take(R), sW = take(W), sB = take(B), sG = take(G);
       splash.classList.add('is-out');
-
-      let target = screen && screen.classList.contains('screen--wallet') ? screen.querySelector('.navbar .wl-ava') : null;
-      if (target && (!inSight([target]).length || (window.DemoWelcome && window.DemoWelcome.isOpen))) target = null;
-      const k = (splash.offsetWidth && splash.getBoundingClientRect().width / splash.offsetWidth) || 1;
-      const m = M.getBoundingClientRect(), u = M.offsetWidth / 512, coin = m.width * .5625;
-      let dx = 0, dy = -28, sc = .6, sameInk = false;
-      if (target) {
-        const t = target.getBoundingClientRect();
-        dx = (t.left + t.width / 2 - (m.left + m.width / 2)) / k;
-        dy = (t.top + t.height / 2 - (m.top + m.height / 2)) / k;
-        sc = Math.min(1, t.width / coin);
-        sameInk = !C || getComputedStyle(target).backgroundColor === getComputedStyle(C).backgroundColor;
+      const PART = 16, GROUND = 140, FADE = 560;
+      if (sB) go(B, [{ opacity: sB.opacity }, { opacity: 0 }], { duration: 160, easing: 'linear' });
+      if (sW) {
+        go(W, [{ opacity: sW.opacity }, { opacity: 0 }], { duration: 240, easing: 'linear' });
+        go(W, [{ transform: sW.transform }, { transform: 'translate3d(0, 6px, 0)' }], { duration: 240 });
       }
-
-      const LOCK = 320, D = 200, TRAVEL = 620, CLEAR = 270;
-      const half = (el, wrap, s, sw, x, y) => {
+      const half = (el, s, y) => {
         if (!s) return;
-        go(el, [{ transform: s.transform }, { transform: `translate3d(${x * u}px, ${y * u}px, 0)` }], { duration: LOCK });
-        go(el, [{ opacity: s.opacity }, { opacity: 1, offset: .84 }, { opacity: 0 }], { duration: 250, easing: 'linear' });
-        if (sw) go(wrap, [{ transform: sw.transform }, { transform: 'none' }], { duration: LOCK });
+        go(el, [{ transform: s.transform }, { transform: `translate3d(0, ${y}px, 0)` }], { duration: 420, delay: 40 });
+        go(el, [{ opacity: s.opacity }, { opacity: 0 }], { duration: 300, delay: 100, easing: 'linear' });
       };
-      half(L, TL, sL, sTL, 20, -61);
-      half(R, TR, sR, sTR, -20, 61);
-      go(C, [{ opacity: 0 }, { opacity: 1 }], { duration: 100, delay: 100, easing: 'linear' });
-      go(G, [{ transform: 'scale(.6)' }, { transform: 'scale(1)' }], { duration: 420 });
-      go(G, [{ opacity: 0, easing: SOFT.ease }, { opacity: 1, offset: D / (D + 360), easing: 'linear' }, { opacity: 0 }], { duration: D + 360, easing: 'linear' });
-      go(M, [{ transform: 'none' }, { transform: `translate3d(${dx}px, ${dy}px, 0) scale(${sc})` }], { duration: TRAVEL, delay: D });
-      if (target) go(K, [{ opacity: 1 }, { opacity: 1, offset: sameInk ? .82 : .6 }, { opacity: 0 }], { duration: TRAVEL + 120, delay: D, easing: 'linear' });
-      else go(K, [{ opacity: 1 }, { opacity: 0 }], { duration: 240, delay: D - 40, easing: 'linear' });
-      go(B, [{ opacity: 1 }, { opacity: 0 }], { duration: 520, delay: D - 60, easing: 'cubic-bezier(.3, .6, .35, 1)' });
+      half(L, sL, PART);
+      half(R, sR, -PART);
+      go(K, [{ transform: 'none' }, { transform: 'scale(.9)' }], { duration: 460, delay: 40 });
+      if (sG) {
+        go(G, [{ opacity: sG.opacity }, { opacity: 0 }], { duration: 460, easing: 'linear' });
+        go(G, [{ transform: 'none' }, { transform: 'scale(1.3)' }], { duration: 460 });
+      }
+      go(BG, [{ opacity: 1 }, { opacity: 0 }], { duration: FADE, delay: GROUND, easing: 'cubic-bezier(.3, .6, .35, 1)' });
       let below = 0;
       parts.forEach((el, i) => {
         const isBar = i === 0 && el.classList && el.classList.contains('navbar');
-        play1(el, soft(SOFT.rise + 6, isBar), { duration: 520, delay: isBar ? D + 40 : D + CLEAR + below++ * 55 });
+        play1(el, soft(SOFT.rise + 6, isBar), { duration: 520, delay: isBar ? GROUND + 60 : GROUND + 240 + below++ * 55 });
       });
-      if (target) play1(target, [{ opacity: 0 }, { opacity: 0, offset: .99 }, { opacity: 1 }], { duration: D + Math.round(TRAVEL * AVA_AT), easing: 'linear' });
-      if (bar) play1(bar, BAR_FRAMES, { duration: 560, delay: D + 340 });
-      setTimeout(freeHeader, 300);
-      return target ? D + TRAVEL + 140 : D + 520;
+      if (bar) play1(bar, BAR_FRAMES, { duration: 560, delay: GROUND + 300 });
+      setTimeout(freeHeader, GROUND + 160);
+      return GROUND + FADE;
     }
 
     function go(animate) {
@@ -687,6 +726,7 @@
       root.classList.remove('motion-launch');
       if (splash) {
         if (hiddenPage() || splash.isConnected === false) return dropSplash();
+        holdMark();
         if (calm) {
           splash.classList.add('is-out');
           freeHeader();
@@ -694,7 +734,7 @@
           setTimeout(dropSplash, 220);
           return;
         }
-        setTimeout(dropSplash, splashOut(screen, screen ? parts : [], screen ? bar : null) + 40);
+        setTimeout(dropSplash, splashOut(screen ? parts : [], screen ? bar : null) + 40);
         return;
       }
       if (!screen) return;
@@ -705,7 +745,9 @@
       if (over) return;
       over = true;
       const shown = shownAt();
-      const wait = splash && shown >= 0 ? Math.max(0, shown + MIN_SHOW_MS - now()) : 0;
+      let until = splash && shown >= 0 ? shown + MIN_SHOW_MS : 0;
+      if (splash && settledAt >= 0) until = Math.max(until, settledAt + MARK_MS);
+      const wait = Math.max(0, until - now());
       if (wait > 0) setTimeout(() => go(animate), wait);
       else go(animate);
     }

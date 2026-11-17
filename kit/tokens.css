@@ -17,7 +17,9 @@
   --skel-sheen: rgba(255, 255, 255, .6);
   --thumb: #ffffff;
   --card-shadow: none;
-  --bar-fill: var(--bg);
+  --bar-fill: color-mix(in srgb, var(--bg) 76%, transparent);
+  --bar-solid: var(--bg);
+  --bar-blur: blur(18px) saturate(160%);
   --bar-pick: var(--card);
   --bar-shadow: 0 6px 20px rgba(0, 0, 0, .1);
   --card-glow: 22%;
@@ -108,7 +110,8 @@
     --skel-sheen: rgba(255, 255, 255, .07);
     --thumb: #f4f4f6;
     --card-shadow: none;
-    --bar-fill: var(--card);
+    --bar-fill: color-mix(in srgb, var(--card) 76%, transparent);
+    --bar-solid: var(--card);
     --bar-pick: #34414e;
     --bar-shadow: 0 6px 20px rgba(0, 0, 0, .45);
     --card-glow: 0%;
@@ -148,7 +151,8 @@
   --skel-sheen: rgba(255, 255, 255, .07);
   --thumb: #f4f4f6;
   --card-shadow: none;
-  --bar-fill: var(--card);
+  --bar-fill: color-mix(in srgb, var(--card) 76%, transparent);
+  --bar-solid: var(--card);
   --bar-pick: #34414e;
   --bar-shadow: 0 6px 20px rgba(0, 0, 0, .45);
   --card-glow: 0%;

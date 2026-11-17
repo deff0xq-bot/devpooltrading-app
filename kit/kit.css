@@ -48,6 +48,7 @@ h1, h2, h3, p, dl, dd { margin: 0; }
   height: 70px; padding: 4px; border-radius: 35px;
   display: grid; grid-template-columns: repeat(var(--n), 1fr);
   background: var(--bar-fill);
+  -webkit-backdrop-filter: var(--bar-blur); backdrop-filter: var(--bar-blur);
   box-shadow: var(--bar-shadow);
   touch-action: pan-y;
   transition: transform .5s var(--ease-ios), opacity .3s ease;
@@ -71,6 +72,12 @@ h1, h2, h3, p, dl, dd { margin: 0; }
   border-radius: 31px; background: var(--bar-pick);
   pointer-events: none;
   will-change: transform;
+}
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .tabbar { background: var(--bar-solid); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .tabbar { background: var(--bar-solid); -webkit-backdrop-filter: none; backdrop-filter: none; }
 }
 .tabbar-item { position: relative; display: block; height: 100%; border-radius: 31px; min-width: 0; }
 .tabbar-item:focus-visible { outline-offset: -3px; }
@@ -509,6 +516,7 @@ h1, h2, h3, p, dl, dd { margin: 0; }
 .market-row .coin { --coin-size: 46px !important; }
 .market-row .market-name b { font-size: 17px; line-height: 22px; }
 .market-row .market-price b { font-size: 17px; line-height: 22px; }
+.market-row .market-price b.roll .roll-d, .market-row .market-price b.roll .roll-c, .market-row .market-price b.roll .roll-col > span { height: 22px; line-height: 22px; }
 .market-name { flex: 1 1 auto; min-width: 58px; display: flex; flex-direction: column; overflow: hidden; }
 .market-name b { font-size: 16px; line-height: 21px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .market-name span { font-size: 13px; line-height: 17px; color: var(--hint); white-space: nowrap; }

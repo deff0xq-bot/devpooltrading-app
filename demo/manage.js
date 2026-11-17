@@ -22,8 +22,6 @@
     'history.sent': ['Отправлено', 'Sent', 'Надіслано', 'Жіберілді'],
     'history.received': ['Получено', 'Received', 'Отримано', 'Алынды'],
     'history.swaps': ['Обмены', 'Swaps', 'Обміни', 'Айырбастар'],
-    'history.spam': ['Спам', 'Spam', 'Спам', 'Спам'],
-    'history.emptySpam': ['Спама нет', 'No spam', 'Спаму немає', 'Спам жоқ'],
     'history.spamNote': ['Похоже на спам. Ничего не отправляйте на этот адрес', 'Looks like spam. Send nothing to this address', 'Схоже на спам. Нічого не надсилайте на цю адресу', 'Спамға ұқсайды. Бұл мекенжайға ештеңе жібермеңіз'],
     'month.1': ['Январь', 'January', 'Січень', 'Қаңтар'],
     'month.2': ['Февраль', 'February', 'Лютий', 'Ақпан'],
@@ -295,8 +293,7 @@
     { value: 'all', key: 'filter.all', empty: 'walletFlow.emptyAll' },
     { value: 'out', key: 'history.sent', empty: 'history.emptyOut' },
     { value: 'in', key: 'history.received', empty: 'history.emptyIn' },
-    { value: 'swap', key: 'history.swaps', empty: 'history.emptySwap' },
-    { value: 'spam', key: 'history.spam', empty: 'history.emptySpam' }
+    { value: 'swap', key: 'history.swaps', empty: 'history.emptySwap' }
   ];
   const sideText = (sign, s) => `${sign}${D.qty(T.fromUnits(s.units, s.decimals))} ${s.sym}`;
   const sideParts = (sign, s) => ({ amount: sideText(sign, s), num: `${sign}${D.qty(T.fromUnits(s.units, s.decimals))}`, sym: String(s.sym || '') });
@@ -305,9 +302,9 @@
   };
   function describe(e) {
     if (e.kind === 'swap') return { icon: 'exchange', kind: 'swap', title: tx('action.swap'), full: tx('tx.exchangeFull', { from: e.gave.sym, to: e.got.sym }), ...sideParts('+', e.got), sub: `${e.gave.sym} → ${e.got.sym}`, up: true };
-    if (e.kind === 'in') return { icon: 'receive', kind: 'in', title: tx('history.received'), full: tx('tx.depositFull', { sym: e.sym }), ...sideParts('+', e), sub: shortOf(e.counterparty), up: true };
+    if (e.kind === 'in') return { icon: 'deposit', kind: 'in', title: tx('history.received'), full: tx('tx.depositFull', { sym: e.sym }), ...sideParts('+', e), sub: shortOf(e.counterparty), up: true };
     if (window.DemoCheques && DemoCheques.isCheque(e.counterparty)) return { icon: 'gift', kind: 'out', title: tx('cheque.row'), full: tx('cheque.row'), ...sideParts('−', e), sub: '', up: false };
-    return { icon: 'send', kind: 'out', title: tx('history.sent'), full: tx('tx.withdrawFull', { sym: e.sym }), ...sideParts('−', e), sub: shortOf(e.counterparty), up: false };
+    return { icon: 'withdraw', kind: 'out', title: tx('history.sent'), full: tx('tx.withdrawFull', { sym: e.sym }), ...sideParts('−', e), sub: shortOf(e.counterparty), up: false };
   }
   const ROW_FITS = [[], ['is-snug'], ['is-tight'], ['is-tight', 'is-snug'], ['is-tight', 'is-small']];
   const cutIn = (row, sel) => {
@@ -471,8 +468,8 @@
         let staggerEnd = 0;
         let held = false;
         function pick() {
-          const { clean, spam } = lists();
-          return st.filter === 'spam' ? spam : st.filter === 'all' ? clean : clean.filter((e) => e.kind === st.filter);
+          const { clean } = lists();
+          return st.filter === 'all' ? clean : clean.filter((e) => e.kind === st.filter);
         }
         const waiting = () => !st.started || st.loading || (!st.failed && !st.ended && st.pages < HISTORY_PAGES_MAX);
         const SKELETON = '<div class="hs-skel" aria-hidden="true"><div class="group"><div class="wallet-skel"></div></div><div class="group"><div class="wallet-skel"></div></div><div class="group"><div class="wallet-skel"></div></div></div>';
@@ -502,7 +499,7 @@
           }
           const anew = !!fresh || !childOf(log, 'hs-month');
           if (!childOf(log, 'hs-month')) log.replaceChildren();
-          const spam = st.filter === 'spam';
+          const spam = false;
           const groups = historyBlocks(shown);
           const want = new Set(groups.map((g) => g.k));
           months.forEach((sec, k) => { if (!want.has(k)) { sec.remove(); months.delete(k); } });
@@ -665,7 +662,7 @@
           const row = e.target.closest('[data-i]');
           if (!row) return;
           CK.haptic.selection();
-          flow.push(detailStep(shown[Number(row.dataset.i)], st.filter === 'spam'));
+          flow.push(detailStep(shown[Number(row.dataset.i)], false));
         });
         if (st.started) {
           if (motion() && motion().quiet) motion().quiet(() => paint());

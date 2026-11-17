@@ -1,6 +1,6 @@
 (function () {
   'use strict';
-  const { icon, t: tx } = CK;
+  const { t: tx } = CK;
   const $ = (s, r) => (r || document).querySelector(s);
   const esc = (s) => CK.esc(String(s));
 
@@ -13,25 +13,7 @@
       'достарыңыздың TON-дағы айырбастарынан түсетін комиссиямыздан үлесіңіз'
     ],
     'bonus.lineOff': ['Сейчас за приглашения ничего не начисляется', 'Invites earn nothing right now', 'Зараз за запрошення нічого не нараховується', 'Қазір шақырулар үшін ештеңе есептелмейді'],
-    'bonus.linePlain': ['Отправьте друзьям ссылку на приложение', 'Send your friends a link to the app', 'Надішліть друзям посилання на застосунок', 'Достарыңызға қолданбаның сілтемесін жіберіңіз'],
-    'bonus.how': ['Как это работает', 'How it works', 'Як це працює', 'Бұл қалай жұмыс істейді'],
-    'bonus.how1': ['Друг открывает приложение по вашей ссылке', 'A friend opens the app by your link', 'Друг відкриває застосунок за вашим посиланням', 'Досыңыз қолданбаны сілтемеңіз арқылы ашады'],
-    'bonus.how1Sub': ['Считается тот, кто раньше не пользовался приложением', 'Only someone who has not used the app before counts', 'Рахується той, хто раніше не користувався застосунком', 'Қолданбаны бұрын пайдаланбаған адам ғана есептеледі'],
-    'bonus.how2': ['Друг меняет токены в сети TON', 'The friend swaps tokens on TON', 'Друг обмінює токени в мережі TON', 'Досыңыз TON желісінде токен айырбастайды'],
-    'bonus.how2Sub': [
-      'С каждого завершённого обмена вам начисляется {pct} нашей комиссии. Обмены в других сетях, стоп и тейк не считаются',
-      'Each finished swap credits you {pct} of our fee. Swaps on other networks, stop-loss and take-profit do not count',
-      'З кожного завершеного обміну вам нараховується {pct} нашої комісії. Обміни в інших мережах, стоп і тейк не рахуються',
-      'Әр аяқталған айырбастан сізге біздің комиссияның {pct} бөлігі есептеледі. Басқа желілердегі айырбастар, стоп пен тейк есептелмейді'
-    ],
-    'bonus.how3': ['Выплата в GRAM', 'Payout in GRAM', 'Виплата в GRAM', 'Төлем GRAM түрінде'],
-    'bonus.how3Sub': ['Начисленное выплачиваем на ваш кошелёк в приложении', 'We pay what you earned to your wallet in the app', 'Нараховане виплачуємо на ваш гаманець у застосунку', 'Есептелгенді қолданбадағы әмияныңызға төлейміз'],
-    'bonus.how3Min': [
-      'Начисленное выплачиваем на ваш кошелёк в приложении, когда набралось от {min}',
-      'We pay what you earned to your wallet in the app once it reaches {min}',
-      'Нараховане виплачуємо на ваш гаманець у застосунку, коли набралося від {min}',
-      'Есептелген сома {min} жеткенде қолданбадағы әмияныңызға төлейміз'
-    ]
+    'bonus.linePlain': ['Отправьте друзьям ссылку на приложение', 'Send your friends a link to the app', 'Надішліть друзям посилання на застосунок', 'Достарыңызға қолданбаның сілтемесін жіберіңіз']
   });
 
   const FRESH_MS = 60000;
@@ -40,9 +22,7 @@
   const UNIT = 'GRAM';
   const EASE = 'cubic-bezier(.22,1,.36,1)';
   const SKEL = '<i class="skel bonus-skel" aria-hidden="true"></i>';
-  const PCT_SKEL = '<i class="skel bonus-pct-skel" aria-hidden="true"></i>';
   const SHARE_SKEL = '<i class="skel bonus-share-skel" aria-hidden="true"></i>';
-  const SLOT = '\u0001';
 
   function keptJoined() {
     try {
@@ -82,7 +62,6 @@
     const bps = facts.refShareBps;
     return Number.isInteger(bps) && bps > 0 && bps <= 10000 ? bps : 0;
   }
-  const withShare = (key, share) => esc(tx(key, { pct: SLOT })).replace(SLOT, share > 0 ? `<b class="bonus-pct">${esc(pct(share))}</b>` : PCT_SKEL);
   const shareHtml = (share) => `<p class="bonus-share"><b class="bonus-share-pct">${share > 0 ? esc(pct(share)) : SHARE_SKEL}</b><span class="bonus-share-cap">${esc(tx('bonus.shareCap'))}</span></p>`;
   const shareOn = (share, waiting) => share > 0 || (share === null && waiting);
   function sayHtml(share, waiting) {
@@ -109,11 +88,6 @@
     if (list.length && CK.motion) CK.motion.blocks(list, opts);
   };
   const gram = (v) => (window.DemoPayouts && DemoPayouts.gramText ? DemoPayouts.gramText(v) : `${v} nano`).replace(/\s*GRAM$/, '');
-  function minText() {
-    const min = CK.payoutAudit && CK.payoutAudit.MIN_NANO;
-    return typeof min === 'bigint' && min > 0n && window.DemoPayouts && DemoPayouts.gramText ? DemoPayouts.gramText(min) : '';
-  }
-  const howRow = (n, name) => `<div class="bonus-step"><span class="bonus-step-mark" aria-hidden="true">${icon(name, { size: 22 })}</span><span class="bonus-step-main"><span class="bonus-step-title" data-t="bonus.how${n}"></span><span class="bonus-step-sub" data-how="${n}"></span></span></div>`;
 
   function build(body, ctx) {
     const I = ctx.invite || (window.DemoApp && DemoApp.invite) || null;
@@ -125,19 +99,15 @@
         <div class="bonus-stat" data-joined-row><span class="bonus-stat-name" data-t="invite.joined"></span><b class="bonus-stat-value" data-joined></b></div>
         <div class="bonus-stat" data-earned-row hidden><span class="bonus-stat-name" data-unit="invite.earned"></span><b class="bonus-stat-value" data-earned></b></div>
         <div class="bonus-stat" data-paid-row hidden><span class="bonus-stat-name" data-unit="invite.paid"></span><b class="bonus-stat-value" data-paid></b></div>
-      </div>
-      <section class="bonus-how" data-how-part>
-        <h2 class="section-title bonus-how-title" data-t="bonus.how"></h2>
-        <div class="group bonus-steps">${howRow(1, 'link')}${howRow(2, 'swap')}${howRow(3, 'wallet')}</div>
-      </section>`;
-    const hero = $('.bonus-hero', body), line = $('[data-line]', body), inviteGroup = $('.bonus-invite', body), stats = $('[data-stats]', body), how = $('[data-how-part]', body);
+      </div>`;
+    const hero = $('.bonus-hero', body), line = $('[data-line]', body), inviteGroup = $('.bonus-invite', body), stats = $('[data-stats]', body);
     const joinedRow = $('[data-joined-row]', body), joined = $('[data-joined]', body), earnedRow = $('[data-earned-row]', body), paidRow = $('[data-paid-row]', body);
     const link = I ? $('.invite-link', inviteGroup) : null, send = I ? $('[data-send]', inviteGroup) : null, copy = I ? $('[data-copy]', inviteGroup) : null;
 
     const topOf = (el) => (el && !el.hidden && el.getBoundingClientRect ? el.getBoundingClientRect().top : null);
     function glide(change) {
       if (!st.shown || CK.reducedMotion()) return void change();
-      const parts = [inviteGroup, stats, how];
+      const parts = [inviteGroup, stats];
       const was = parts.map(topOf);
       change();
       parts.forEach((el, i) => {
@@ -151,12 +121,11 @@
       body.querySelectorAll('[data-t]').forEach((el) => { el.textContent = tx(el.dataset.t); });
       body.querySelectorAll('[data-unit]').forEach((el) => { el.textContent = `${tx(el.dataset.unit)}, ${UNIT}`; });
     }
-    let said = '', saidTwo = '', kindWas = '';
+    let said = '', kindWas = '';
     function paintShare() {
       const waiting = st.shareWait || !st.asked;
       const html = sayHtml(st.share, waiting);
-      const howOn = shareOn(st.share, waiting);
-      const kind = howOn ? 'share' : st.share === 0 ? 'off' : 'plain';
+      const kind = shareOn(st.share, waiting) ? 'share' : st.share === 0 ? 'off' : 'plain';
       const draw = () => {
         if (html !== said) {
           const filling = !!line.querySelector('.skel') && st.share > 0;
@@ -164,19 +133,6 @@
           if (st.shown && said) fade(filling ? line.querySelector('.bonus-share-pct') : line);
           said = html;
         }
-        how.hidden = !howOn;
-        if (!howOn) return;
-        const sub = (n) => $(`[data-how="${n}"]`, how);
-        sub(1).textContent = tx('bonus.how1Sub');
-        const two = withShare('bonus.how2Sub', st.share);
-        if (two !== saidTwo) {
-          const filling = !!sub(2).querySelector('.skel') && st.share > 0;
-          sub(2).innerHTML = two;
-          saidTwo = two;
-          if (filling && st.shown) fade(sub(2).querySelector('.bonus-pct'));
-        }
-        const min = minText();
-        sub(3).textContent = min ? tx('bonus.how3Min', { min }) : tx('bonus.how3Sub');
       };
       if (kindWas && kind !== kindWas) glide(draw);
       else draw();
@@ -216,7 +172,7 @@
         $('span', send).textContent = tx(next === 'failed' ? 'common.retry' : 'common.send');
       }
       if (copy) copy.disabled = next !== 'ok';
-      glide(drawJoined);
+      drawJoined();
     }
     const earnedNow = () => { const mine = I ? I.now : null; return mine && typeof mine.earned === 'bigint' ? mine.earned : 0n; };
     const paidNow = () => { const mine = I ? I.now : null; return mine && typeof mine.paid === 'bigint' ? mine.paid : 0n; };
@@ -292,16 +248,64 @@
         loadShare();
         if (first) {
           st.shown = true;
-          blocks([hero, inviteGroup, stats, how]);
+          blocks([hero, inviteGroup, stats]);
         }
       }
     };
+  }
+
+  const BAR_TITLE = 17, RIDE_MIN = 44, RIDE_UNDER = 20;
+  const RIDE_SPARE = 2;
+  function rideOf(el, scroll) {
+    const glider = $('.hd-glide', el), slot = $('.hd-slot', el), head = $('.screen-head', el), row = $('.navbar-row', el);
+    if (!glider || !slot || !head || !row) return 0;
+    let y0 = 0;
+    for (let n = slot; n && n !== scroll; n = n.offsetParent) y0 += n.offsetTop;
+    const s1 = BAR_TITLE / (parseFloat(getComputedStyle(glider).fontSize) || BAR_TITLE);
+    const y1 = row.offsetTop + row.offsetHeight / 2 - glider.offsetHeight * s1 / 2;
+    const under = head.offsetTop + head.offsetHeight - (row.offsetTop + row.offsetHeight);
+    return Math.max(y0 - y1, under + RIDE_UNDER, RIDE_MIN);
+  }
+  function roomForRide(screen) {
+    const el = screen.el, scroll = screen.scroll, body = screen.body;
+    if (!el || !scroll || !body || typeof window.ResizeObserver !== 'function') return;
+    let added = 0;
+    const fit = () => {
+      if (!scroll.clientHeight) return;
+      const room = scroll.scrollHeight - scroll.clientHeight - added;
+      const want = Math.ceil(rideOf(el, scroll)) + RIDE_SPARE;
+      const next = room > 0 && room < want ? want - room : 0;
+      if (next === added) return;
+      added = next;
+      body.style.setProperty('--bonus-ride', `${next}px`);
+    };
+    const sizes = new ResizeObserver(fit);
+    sizes.observe(scroll);
+    sizes.observe(body);
+    const head = $('.screen-head', el);
+    if (head) sizes.observe(head);
+    let timer = 0, finger = false;
+    const settleSoon = () => {
+      if (!added) return;
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        const y = scroll.scrollTop, end = scroll.scrollHeight - scroll.clientHeight;
+        if (finger || !added || y <= 0 || y >= end - 1) return;
+        scroll.scrollTo({ top: y < end / 2 ? 0 : end, behavior: CK.reducedMotion() ? 'auto' : 'smooth' });
+      }, 140);
+    };
+    const lift = () => { finger = false; settleSoon(); };
+    scroll.addEventListener('touchstart', () => { finger = true; }, { passive: true });
+    scroll.addEventListener('touchend', lift, { passive: true });
+    scroll.addEventListener('touchcancel', lift, { passive: true });
+    scroll.addEventListener('scroll', settleSoon, { passive: true });
   }
 
   function mount(pane, ctx) {
     const screen = CK.screen({ title: CK.tr ? CK.tr('tab.bonus') : tx('tab.bonus'), compactTop: true, avatar: ctx.openProfile, headExtra: ctx.statusHtml });
     screen.el.classList.add('bonus-screen');
     const part = build(screen.body, ctx);
+    roomForRide(screen);
     ctx.makeStack(ctx.id || 'bonus', screen);
     return { onShow: () => part.show() };
   }
@@ -310,11 +314,12 @@
     const screen = CK.screen({ title: () => tx('tab.bonus') });
     screen.el.classList.add('no-tabbar', 'bonus-screen');
     const part = build(screen.body, c);
+    roomForRide(screen);
     stack.push(screen, { returnFocus: c.from });
     part.show();
   }
 
   try { localStorage.removeItem('ck-bonus-free'); } catch (_) { }
 
-  window.DemoBonus = { mount, push, referralHtml };
+  window.DemoBonus = { mount, push, referralHtml, heroHtml: (facts) => heroHtml(shareOf(facts), facts === null || facts === undefined) };
 })();

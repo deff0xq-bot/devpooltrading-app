@@ -2015,7 +2015,7 @@
         body.innerHTML = `
           <div class="w-swap">
             <button class="w-card w-pair press" type="button" data-pick="from"><span class="w-card-top"><span>${tx('exchange.give')}</span><span class="w-pair-bal"></span></span><span class="w-card-main w-pair-asset"></span></button>
-            <button class="w-flip press" type="button" aria-label="${tx('exchange.flip')}"><span style="transform:rotate(${90 + state.turn}deg)">${icon('swap', { size: 20 })}</span></button>
+            <button class="w-flip press" type="button" aria-label="${tx('exchange.flip')}"><span style="transform:rotate(${state.turn}deg)">${icon('exchange', { size: 20 })}</span></button>
             <button class="w-card w-pair press" type="button" data-pick="to"><span class="w-card-top"><span>${tx('exchange.get')}</span><span class="w-pair-bal"></span></span><span class="w-card-main w-pair-asset"></span></button>
           </div>`;
         const dock = CK.el(`<div class="sheet-dock sw-dock"><p class="sw-line" role="status"></p><button class="btn btn--wide press w-go" type="button"></button></div>`);
@@ -2103,7 +2103,7 @@
             [state.from, state.to] = [state.to, state.from];
             state.picked = true;
             state.turn += 180;
-            $('.w-flip span', body).style.transform = `rotate(${90 + state.turn}deg)`;
+            $('.w-flip span', body).style.transform = `rotate(${state.turn}deg)`;
             paint();
             return;
           }
@@ -2178,7 +2178,7 @@
   }
   const sideText = (sign, s) => `${sign}${D.qty(T.fromUnits(s.units, s.decimals))} ${s.sym}`;
   function describe(e) {
-    if (e.kind === 'swap') return { icon: 'swap', title: tx('action.swap'), full: tx('tx.exchangeFull', { from: e.gave.sym, to: e.got.sym }), amount: sideText('+', e.got), sub: sideText('−', e.gave), dir: 'up' };
+    if (e.kind === 'swap') return { icon: 'exchange', title: tx('action.swap'), full: tx('tx.exchangeFull', { from: e.gave.sym, to: e.got.sym }), amount: sideText('+', e.got), sub: sideText('−', e.gave), dir: 'up' };
     if (e.kind === 'in') return { icon: 'deposit', title: tx('deposit.kind'), full: tx('tx.depositFull', { sym: e.sym }), amount: sideText('+', e), sub: '', dir: 'up' };
     if (window.DemoCheques && DemoCheques.isCheque(e.counterparty)) return { icon: 'gift', title: tx('cheque.row'), full: tx('cheque.row'), amount: sideText('−', e), sub: '', dir: 'down' };
     return { icon: 'withdraw', title: tx('withdraw.kind'), full: tx('tx.withdrawFull', { sym: e.sym }), amount: sideText('−', e), sub: '', dir: 'down' };

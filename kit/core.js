@@ -264,10 +264,15 @@
   }
 
   let headerTint = null;
+  function splashTint() {
+    if (!root.classList.contains('sp-on') || (CK.launch && CK.launch.headerHeld === false)) return null;
+    const c = getComputedStyle(root).getPropertyValue('--sp-a').trim();
+    return HEX.test(c) ? c : null;
+  }
   function paintBars() {
     const color = getComputedStyle(root).getPropertyValue('--bg').trim();
     if (!HEX.test(color)) return;
-    const head = headerTint || color;
+    const head = headerTint || splashTint() || color;
     if (!webApp) {
       post('web_app_set_header_color', { color_key: 'secondary_bg_color' });
       post('web_app_set_header_color', { color: head });
@@ -337,6 +342,7 @@
       headerTint = next;
       paintBars();
     },
+    repaint() { paintBars(); },
     get app() { return webApp; },
     init() {
       const sdk = window.Telegram && window.Telegram.WebApp;

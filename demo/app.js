@@ -463,7 +463,7 @@ CK.buildApp(function () {
   function shareAction(inst) {
     const code = shareCode(inst);
     if (!code) return null;
-    const linkNow = () => SHARE_LINK + code + (invite && !inviteStale && code.length + 10 <= 64 ? `-r${invite.code}` : '');
+    const linkNow = () => SHARE_LINK + code;
     return {
       icon: 'share', label: tr('share.aria'),
       onClick() {
@@ -1170,9 +1170,21 @@ CK.buildApp(function () {
       if (!document.hidden && currentTab === 'portfolio') loadBalances();
     });
     CK.i18n.bind(screen.el, () => paintScreen(true));
+    const TINTED_TABS = { trade: 1, exchange: 1, bonus: 1, profile: 1 };
+    let tabTint = null, tabTintTheme = null;
+    function tabTintNow() {
+      const dark = !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      const theme = `${document.documentElement.dataset.theme || ''}|${dark ? 1 : 0}`;
+      if (theme !== tabTintTheme) {
+        tabTintTheme = theme;
+        tabTint = getComputedStyle(document.documentElement).getPropertyValue('--tab-top').trim() || null;
+      }
+      return tabTint;
+    }
     function syncHero() {
       if (currentTab !== 'portfolio') {
-        CK.tg.tintHeader(null);
+        const own = !!TINTED_TABS[currentTab] && (stacks[currentTab] ? stacks[currentTab].depth <= 1 : true);
+        CK.tg.tintHeader(own && !(CK.launch && CK.launch.headerHeld) ? tabTintNow() : null);
         return;
       }
       const heroEl = $('.wallet-hero', body);
@@ -1189,6 +1201,7 @@ CK.buildApp(function () {
     document.addEventListener('ck:launch-header', syncHero);
     viewChanged.push(syncHero);
     new MutationObserver(syncHero).observe(body, { childList: true });
+    new MutationObserver(syncHero).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     paintScreen();
     syncHero();
     (function splashBackstop() {
@@ -1197,6 +1210,7 @@ CK.buildApp(function () {
         if (!s || (late && s.classList.contains('is-out'))) return;
         s.remove();
         document.documentElement.classList.remove('sp-on', 'motion-launch');
+        if (CK.tg && typeof CK.tg.repaint === 'function') CK.tg.repaint();
       };
       if (!CK.launch) drop(false);
       else setTimeout(() => drop(true), 3000);

@@ -1446,7 +1446,7 @@
         <div class="p2p-amtblock">
           <div class="field">
             <span class="field-label"><span class="p2p-amt-label">${esc(label())}</span><button class="section-link press" type="button" data-all>${esc(t('all'))}</button></span>
-            <span class="field-box"><input class="p2p-amt" inputmode="decimal" autocomplete="off" enterkeyhint="done" placeholder="0" aria-label="${esc(label())}" value="${esc(st.coinMode ? st.coinText : st.amount)}"><button class="field-unit p2p-unit press" type="button" data-unit aria-label="${esc(t('swapUnit'))}"><span class="p2p-unit-text">${esc(st.coinMode ? symbol : fiat)}</span>${icon('swap', { size: 14 })}</button></span>
+            <span class="field-box"><input class="p2p-amt" inputmode="decimal" autocomplete="off" enterkeyhint="done" placeholder="0" aria-label="${esc(label())}" value="${esc(st.coinMode ? st.coinText : st.amount)}"><button class="field-unit p2p-unit press" type="button" data-unit aria-label="${esc(t('swapUnit'))}"><span class="p2p-unit-text">${esc(st.coinMode ? symbol : fiat)}</span>${icon('exchange', { size: 14 })}</button></span>
           </div>
           <p class="p2p-conv"></p>
           <p class="p2p-limit"></p>

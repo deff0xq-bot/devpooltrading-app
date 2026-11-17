@@ -116,7 +116,8 @@
 }
 .detail-price.is-none { font: 600 24px/44px var(--font-display); letter-spacing: -.02em; color: var(--hint); }
 .detail-price .roll { max-width: 100%; }
-.detail-price:not(.is-none) .roll > .roll-c:is(:first-child, :last-child) { color: var(--hint); font-weight: 600; }
+.detail-price { font-kerning: none; }
+.detail-price .roll .roll-d, .detail-price .roll .roll-c, .detail-price .roll .roll-col > span { height: 44px; line-height: 44px; }
 .tk-price-skel { display: inline-block; width: 64px; height: 14px; border-radius: 4px; vertical-align: -1px; }
 .group .tk-price-skel { --skel-fill: rgba(130, 140, 160, .16); }
 .detail-price .tk-price-skel { width: 112px; height: 26px; border-radius: 8px; vertical-align: middle; }
@@ -318,7 +319,7 @@
 
 .tk-sort-pad {
   position: relative; z-index: 1; display: flex; align-items: center;
-  margin-top: var(--sp-16, 16px); padding-block: var(--sp-8, 8px); background: var(--bg);
+  margin-top: var(--sp-16, 16px); padding-block: var(--sp-8, 8px); background: none;
   --tk-seg-pill: var(--bg);
 }
 .tk-sort-pad[hidden] { display: none; }
@@ -347,6 +348,7 @@
 
 .tk-find { display: flex; align-items: stretch; gap: var(--sp-8, 8px); }
 .tk-find .search { flex: 1 1 auto; min-width: 0; }
+.tk-feed .tk-find .search { background: var(--card); }
 .tk-netchip { position: relative; flex: none; display: inline-flex; align-items: center; gap: 5px; height: auto; padding: 0 9px 0 5px; border-radius: 999px; background: var(--card); color: var(--text); font-size: 15px; font-weight: 600; transition: opacity .2s ease; }
 .tk-netchip-label { line-height: 1; white-space: nowrap; }
 .tk-netchip > .icon { flex: none; color: var(--hint); }

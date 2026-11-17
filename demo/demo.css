@@ -338,6 +338,12 @@
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --pf-top: #1c4f80; --pf-mid: #1a3550; } }
 .screen--wallet { background: linear-gradient(180deg, var(--pf-top) 0%, var(--pf-mid) 30%, var(--bg) 62%); }
 .screen--wallet { --screen-ground: linear-gradient(180deg, var(--pf-top) 0, var(--pf-mid) 30vh, var(--bg) 62vh); }
+
+:root { --tab-top: var(--pf-top); --tab-mid: var(--pf-mid); }
+#pane-trade > .tk-feed, #pane-exchange > .ex-screen, #pane-bonus > .bonus-screen, #pane-profile > .screen--profile {
+  --screen-ground: linear-gradient(180deg, var(--tab-top) 0, var(--tab-mid) 30vh, var(--bg) 62vh);
+  background: var(--screen-ground);
+}
 .screen--wallet .balance::before, .pf-skel-top::before { content: none !important; }
 
 .screen--wallet .action-disc { transition: transform .45s cubic-bezier(.22, 1, .36, 1) !important; }

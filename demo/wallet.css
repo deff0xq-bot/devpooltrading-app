@@ -148,7 +148,7 @@
 .w-day-name { font-size: 13px; line-height: 18px; font-weight: 400; color: var(--hint); }
 .w-tile { flex: none; display: inline-flex; align-items: center; justify-content: center; width: var(--s); height: var(--s); border-radius: 50%; background: var(--fill-strong); color: var(--text); }
 .w-tile[data-kind="deposit"] { background: var(--green-soft); color: var(--green); }
-.w-tile[data-kind="swap"] { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--link); }
+.w-tile[data-kind="exchange"] { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--link); }
 .w-tx { min-height: 68px; gap: 14px; }
 .w-tx .w-tile { --s: 44px !important; background: var(--accent-tint) !important; color: var(--link) !important; }
 .w-tx .cell-main { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; }

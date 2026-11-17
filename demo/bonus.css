@@ -1,4 +1,4 @@
-.bonus-screen .screen-body { padding-top: var(--sp-8, 8px); }
+.bonus-screen .screen-body { padding-top: var(--sp-8, 8px); padding-bottom: var(--bonus-ride, 0px); }
 .bonus-screen .cell[hidden], .bonus-screen .group[hidden], .bonus-screen [hidden] { display: none; }
 
 .bonus-hero { --art: 208px; display: flex; flex-direction: column; align-items: center; padding: 0 var(--gutter, 16px) 20px; text-align: center; }
@@ -20,8 +20,6 @@
   .bonus-share-pct { min-height: 44px; font-size: 40px; line-height: 44px; }
   .bonus-share-skel { height: 32px; }
 }
-.bonus-pct { font-weight: 600; color: var(--text); white-space: nowrap; }
-.bonus-pct-skel { display: inline-block; width: 2.4em; height: 1em; border-radius: 6px; vertical-align: -.14em; }
 
 .bonus-invite { display: flex; flex-direction: column; gap: var(--sp-12, 12px); padding: var(--sp-16, 16px); }
 .bonus-invite > .invite-link { margin-top: 0; min-height: 60px; background: var(--bg); }
@@ -41,15 +39,6 @@
 .bonus-stat-name { font-size: 13px; line-height: 17px; color: var(--hint); white-space: nowrap; }
 .bonus-stat-value { min-height: 26px; font-family: var(--font-display); font-size: 20px; line-height: 26px; font-weight: 700; letter-spacing: -.2px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .bonus-skel { display: inline-block; width: 30px; height: 16px; border-radius: 6px; vertical-align: -2px; }
-
-.bonus-how { margin-top: var(--sp-24, 24px); }
-.bonus-how-title { margin: 0 0 var(--sp-8, 8px); }
-.bonus-steps { display: flex; flex-direction: column; gap: var(--sp-16, 16px); padding: var(--sp-16, 16px); }
-.bonus-step { display: flex; align-items: flex-start; gap: var(--sp-12, 12px); }
-.bonus-step-mark { flex: none; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 12px; background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
-.bonus-step-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.bonus-step-title { font-size: 16px; line-height: 21px; font-weight: 600; }
-.bonus-step-sub { font-size: 14px; line-height: 19px; color: var(--hint); }
 
 .fg-link { display: inline; padding: 0; border: 0; background: none; font: inherit; color: inherit; text-align: inherit; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
 .fg-link:active { opacity: .6; }

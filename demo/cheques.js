@@ -341,7 +341,7 @@
           return false;
         }
         function intentNow() {
-          const ref = window.DemoApp && typeof DemoApp.inviteLink === 'function' ? (String(DemoApp.inviteLink() || '').match(/r_([a-z0-9]{8})$/) || [])[1] || null : null;
+          const ref = null;
           const kind = kindOf(st.asset);
           return {
             asset: kind, units: st.units.toString(), expiresAt: nowS() + st.days * 86400, kind: st.kind, note: st.kind === 'gift' && st.note.trim() ? st.note.trim() : null, ref,

@@ -23,6 +23,9 @@
   .al-row.is-on { background: var(--fill); }
   .sw-spin { border: 3.5px solid var(--fill-strong); border-top-color: var(--accent); }
   .tk-net.is-on .tk-tile { background: rgba(128, 128, 128, .3); }
+  :root { --bar-fill: rgba(255, 255, 255, .76); }
+  :root[data-theme="dark"] { --bar-fill: rgba(32, 44, 56, .76); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bar-fill: rgba(32, 44, 56, .76); } }
 }
 
 @supports not selector(:has(a)) {

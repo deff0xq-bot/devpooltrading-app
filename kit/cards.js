@@ -310,12 +310,16 @@
     }
     if (el.firstElementChild || el.textContent !== text) el.textContent = text;
   }
-  const TICK_IN = [{ opacity: .35, filter: 'blur(2px)', transform: 'translate3d(0,3px,0)' }, { opacity: 1, filter: 'blur(0)', transform: 'none' }];
-  function landTick(el, text) {
-    const changed = el.textContent !== text;
-    tickRest(el, text);
-    if (!changed || !el.animate || (CK.reducedMotion && CK.reducedMotion())) return;
-    try { el.animate(TICK_IN, { duration: 380, easing: 'cubic-bezier(.22, 1, .36, 1)' }); } catch (_) { }
+  const wheeled = (el) => el.classList.contains('roll') && el.childElementCount > 0;
+  function landTick(el, text, up) {
+    const shown = wheeled(el) ? el.getAttribute('aria-label') : el.textContent;
+    if (shown === text) return;
+    if ((up !== true && up !== false) || typeof CK.roll !== 'function' || !el.animate || (CK.reducedMotion && CK.reducedMotion())) {
+      tickRest(el, text);
+      return;
+    }
+    if (!wheeled(el)) CK.roll(el, shown);
+    CK.roll(el, text, undefined, up);
   }
 
   const tickQueue = new Map();
@@ -345,7 +349,7 @@
         el._late = tick.text;
         continue;
       }
-      landTick(el, tick.text);
+      landTick(el, tick.text, tick.up);
       if (performance.now() >= sliceEnd) {
         more = true;
         break;

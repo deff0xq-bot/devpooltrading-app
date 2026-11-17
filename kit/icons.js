@@ -99,7 +99,6 @@
     'arrow-down-left': { o: p('M17.2 6.8L6.8 17.2M15.6 17.2H6.8V8.4') },
     'arrow-up': { o: p('M12 19.6V4.6M5.4 11.2L12 4.6l6.6 6.6') },
     'arrow-down': { o: p('M12 4.4v15M5.4 12.8l6.6 6.6 6.6-6.6') },
-    swap: { o: p('M3.4 8.6h15.8M15.4 4.8l3.8 3.8-3.8 3.8M20.6 15.4H4.8M8.6 11.6l-3.8 3.8 3.8 3.8') },
     exchange: { o: p('M4.3 11A7.8 7.8 0 0 1 18.2 7.2M18.9 3.5v3.9H15') + p('M19.7 13a7.8 7.8 0 0 1-13.9 3.8M5.1 20.5v-3.9H9'), f: '<path d="M4.3 11A7.8 7.8 0 0 1 18.2 7.2M18.9 3.5v3.9H15" stroke-width="2.4"/><path d="M19.7 13a7.8 7.8 0 0 1-13.9 3.8M5.1 20.5v-3.9H9" stroke-width="2.4"/>' },
     p2p: {
       o: '<circle cx="7.75" cy="7.75" r="3.1"/><path d="M2.58 19.5A5.25 5.25 0 0 1 12.92 19.5z"/><path d="M16.25 19.5V5H17.75a2.75 2.75 0 0 1 0 5.5H16.25"/><path d="M14.25 14.25H20.25"/>',
@@ -109,12 +108,6 @@
       o: rect(3, 4.6, 18, 14.8, 5) + p('M15.4 9.6h1.8a2.4 2.4 0 0 1 0 4.8h-1.8a2.4 2.4 0 0 1 0-4.8z'),
       f: '<path d="M8 4.6h8a5 5 0 0 1 5 5v4.8a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5V9.6a5 5 0 0 1 5-5zM15.4 9.2h1.8a2.8 2.8 0 0 1 0 5.6h-1.8a2.8 2.8 0 0 1 0-5.6z" fill="currentColor" stroke="none" fill-rule="evenodd"/>'
         + '<circle cx="16.3" cy="12" r="1.15" fill="currentColor" stroke="none"/>'
-    },
-    'tab-exchange': {
-      o: circle(12, 12, 9) + p('M7.6 9.8h8.4l-2.4-2.4') + p('M16.4 14.2H8l2.4 2.4'),
-      f: '<circle cx="12" cy="12" r="9.8" fill="currentColor" stroke="none"/>'
-        + '<path d="M7.4 9.8h8.8l-2.5-2.5" fill="none" style="stroke:var(--bg)" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>'
-        + '<path d="M16.6 14.2H7.8l2.5 2.5" fill="none" style="stroke:var(--bg)" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>'
     },
     'tab-p2p': {
       o: rect(3, 3, 18, 18, 6) + circle(8.8, 8.8, 1.9) + circle(15.2, 15.2, 1.9) + p('M13.4 6.9a5.4 5.4 0 0 1 3.7 3.7M17.1 8.3v2.3h-2.3') + p('M10.6 17.1a5.4 5.4 0 0 1-3.7-3.7M6.9 15.7v-2.3h2.3'),
@@ -139,7 +132,6 @@
     withdraw: { o: p('M7 17 17 7M8.6 7H17v8.4') },
     send: { o: p('M12 19V5.2M6.1 11.1L12 5.2l5.9 5.9') },
     receive: { o: p('M12 5v13.8M6.1 12.9l5.9 5.9 5.9-5.9') },
-    'swap-circle': { o: p('M5.4 8.7H18l-3.6-3.6') + p('M18.6 15.3H6l3.6 3.6') },
     refresh: { o: p('M20 12a8 8 0 1 1-2.45-5.77L20 8.6M20 3.8v4.8h-4.8') },
     history: { o: rect(4, 4, 16, 16, 5) + p('M12 8.4V12l2.6 1.6') },
     percent: { o: p('M18.8 5.2L5.2 18.8') + circle(7.4, 7.4, 2.6) + circle(16.6, 16.6, 2.6) },
@@ -210,6 +202,7 @@
     tag: { o: p('M3.4 11.4V5.2a1.8 1.8 0 0 1 1.8-1.8h6.2c.5 0 .95.2 1.3.55l7.3 7.3a1.8 1.8 0 0 1 0 2.55l-6.2 6.2a1.8 1.8 0 0 1-2.55 0L3.95 12.7a1.8 1.8 0 0 1-.55-1.3z') + dot(8, 8, 1.35) }
   };
   ICONS['info-circle'] = ICONS.info;
+  ICONS.swap = ICONS['swap-circle'] = ICONS['tab-exchange'] = ICONS.exchange;
 
   CK.ICONS = ICONS;
 

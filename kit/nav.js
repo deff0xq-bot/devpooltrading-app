@@ -50,13 +50,6 @@
         { of: [1], origin: '16.3px 12px', pose: (v) => `translateX(${n3(-3.5 * v)}px) scale(${n3(1 - .5 * v)})`, delay: 2 }
       ]
     },
-    'tab-exchange': {
-      parts: [
-        { of: [0], origin: '12px 12px', pose: (v) => `scale(${n3(1 - .14 * v)})` },
-        { of: [1], origin: '12px 9.8px', pose: (v) => `translateX(${n3(-4 * v)}px)`, delay: 1 },
-        { of: [2], origin: '12px 14.2px', pose: (v) => `translateX(${n3(4 * v)}px)`, delay: 2 }
-      ]
-    },
     'tab-p2p': {
       parts: [
         { of: [0], origin: '12px 12px', pose: (v) => `scale(${n3(1 - .14 * v)})` },
@@ -200,12 +193,7 @@
         if (!silent && o.onChange) o.onChange(items[i].id, i);
       }
     }
-    function indexFromPointer(px) {
-      const r = host.getBoundingClientRect();
-      return ((px - r.left) / r.width) * items.length - .5;
-    }
-
-    let near = index, pressed = null;
+    let pressed = null;
     let compact = false, growing = 0;
     function setCompact(on) {
       on = !!on;
@@ -218,31 +206,16 @@
       if (!on) growing = setTimeout(() => host.classList.remove('is-growing'), 560);
     }
     host.addEventListener('focusin', () => setCompact(false));
-    host.addEventListener('pointerdown', () => setCompact(false), { passive: true });
     function press(b) {
       if (pressed) pressed.classList.remove('is-pressed');
       pressed = b;
       if (b) b.classList.add('is-pressed');
     }
-    CK.drag(host, {
-      axis: 'x',
-      threshold: 4,
-      onPress(s) { press(s.target.closest('.tabbar-item')); },
-      onStart() { if (anim) anim.stop(); near = index; press(null); },
-      onMove(s) {
-        const raw = indexFromPointer(s.x);
-        const max = items.length - 1;
-        x = clamp(raw, 0, max);
-        paint();
-        const n = clamp(Math.round(raw), 0, max);
-        if (n !== near) { near = n; markNear(n); CK.haptic.selection(); }
-      },
-      onEnd(s, cancelled) {
-        press(null);
-        select(cancelled ? index : clamp(Math.round(indexFromPointer(s.x)), 0, items.length - 1));
-      },
-      onRelease() { press(null); }
-    });
+    host.addEventListener('pointerdown', (e) => {
+      setCompact(false);
+      press(e && e.target && typeof e.target.closest === 'function' ? e.target.closest('.tabbar-item') : null);
+    }, { passive: true });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach((type) => host.addEventListener(type, () => press(null), { passive: true }));
     host.addEventListener('click', (e) => {
       const b = e.target.closest('.tabbar-item');
       if (b) select(Number(b.dataset.i));
