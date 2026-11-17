@@ -545,7 +545,7 @@
     get armed() { return armed(); }
   };
 
-  const LAUNCH_MAX_MS = 1800, MIN_SHOW_MS = 1400, MARK_MS = 780, HOLD_MS = 420, SPLASH_HARD_MS = 12000;
+  const LAUNCH_MAX_MS = 1800, MIN_SHOW_MS = 1200, FADE_MS = 420, SPLASH_HARD_MS = 12000;
   (function launchEntrance() {
     const raf = typeof window.requestAnimationFrame === 'function' ? window.requestAnimationFrame.bind(window) : null;
     const splash = typeof doc.getElementById === 'function' ? doc.getElementById('dp-splash') : null;
@@ -571,12 +571,6 @@
         const paints = performance.getEntriesByType('paint');
         if (paints && paints.length) t = Math.min(...paints.map((p) => p.startTime));
       } catch (_) { }
-      if (t < 0) {
-        try {
-          const half = splash.querySelector('.sp-h'), a = half && half.getAnimations()[0];
-          if (a && typeof a.currentTime === 'number') t = now() - a.currentTime;
-        } catch (_) { }
-      }
       if (t < 0) t = frameAt;
       return t < 0 ? -1 : Math.max(0, t, toldAt);
     };
@@ -622,7 +616,7 @@
         if (!from) return;
         const dx = from.at[0] + off[0] - to[0], dy = from.at[1] + off[1] - to[1];
         stopGlide();
-        if ((Math.abs(dx) < .5 && Math.abs(dy) < .5) || root.classList.contains('tg-settling')) return;
+        if (Math.abs(dx) < .5 && Math.abs(dy) < .5) return;
         try {
           glide = splashMark.animate([{ transform: `translate3d(${hundredths(dx)}px, ${hundredths(dy)}px, 0)` }, { transform: 'none' }], { duration: 360, easing: SOFT.ease });
         } catch (_) { }
@@ -666,46 +660,16 @@
     const BAR_FRAMES = [{ opacity: 0, transform: 'translate3d(0, 18px, 0)' }, { opacity: 1, transform: 'none' }];
 
     function splashOut(parts, bar) {
-      const q = (s) => splash.querySelector(s);
-      const L = q('.sp-l'), R = q('.sp-r'), K = q('.sp-k'), W = q('.sp-w'), G = q('.sp-g'), BG = q('.sp-bg');
-      const go = (el, kf, t) => {
-        if (!el) return;
-        try { el.animate(kf, Object.assign({ easing: SOFT.ease, fill: 'both' }, t)); } catch (_) { }
-      };
-      const take = (el) => {
-        if (!el) return null;
-        const cs = getComputedStyle(el), s = { transform: cs.transform, opacity: cs.opacity };
-        el.style.animation = 'none';
-        return s;
-      };
-      const sL = take(L), sR = take(R), sW = take(W), sG = take(G);
       splash.classList.add('is-out');
-      const PART = 16, GROUND = 140, FADE = 560;
-      if (sW) {
-        go(W, [{ opacity: sW.opacity }, { opacity: 0 }], { duration: 240, easing: 'linear' });
-        go(W, [{ transform: sW.transform }, { transform: 'translate3d(0, 6px, 0)' }], { duration: 240 });
-      }
-      const half = (el, s, y) => {
-        if (!s) return;
-        go(el, [{ transform: s.transform }, { transform: `translate3d(0, ${y}px, 0)` }], { duration: 420, delay: 40 });
-        go(el, [{ opacity: s.opacity }, { opacity: 0 }], { duration: 300, delay: 100, easing: 'linear' });
-      };
-      half(L, sL, PART);
-      half(R, sR, -PART);
-      go(K, [{ transform: 'none' }, { transform: 'scale(.9)' }], { duration: 460, delay: 40 });
-      if (sG) {
-        go(G, [{ opacity: sG.opacity }, { opacity: 0 }], { duration: 460, easing: 'linear' });
-        go(G, [{ transform: 'none' }, { transform: 'scale(1.3)' }], { duration: 460 });
-      }
-      go(BG, [{ opacity: 1 }, { opacity: 0 }], { duration: FADE, delay: GROUND, easing: 'cubic-bezier(.3, .6, .35, 1)' });
+      try { splash.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FADE_MS, easing: 'cubic-bezier(.3, .6, .35, 1)', fill: 'both' }); } catch (_) { }
       let below = 0;
       parts.forEach((el, i) => {
         const isBar = i === 0 && el.classList && el.classList.contains('navbar');
-        play1(el, soft(SOFT.rise + 6, isBar), { duration: 520, delay: isBar ? GROUND + 60 : GROUND + 240 + below++ * 55 });
+        play1(el, soft(SOFT.rise + 6, false), { duration: 520, delay: isBar ? 60 : 180 + below++ * 55 });
       });
-      if (bar) play1(bar, BAR_FRAMES, { duration: 560, delay: GROUND + 300 });
-      setTimeout(freeHeader, GROUND + 160);
-      return GROUND + FADE;
+      if (bar) play1(bar, BAR_FRAMES, { duration: 560, delay: 240 });
+      setTimeout(freeHeader, 160);
+      return FADE_MS;
     }
 
     function go(animate) {
@@ -756,13 +720,13 @@
         });
         return;
       }
-      let until = splash && shown >= 0 ? shown + MIN_SHOW_MS : 0;
-      if (splash && settledAt >= 0) until = Math.max(until, settledAt + MARK_MS + HOLD_MS);
+      const until = splash && shown >= 0 ? shown + MIN_SHOW_MS : 0;
       const wait = Math.max(0, until - now());
       if (wait > 0) setTimeout(() => go(animate), wait);
       else go(animate);
     }
     function tick() {
+      if (frameAt < 0) frameAt = now();
       if (over) return;
       const panes = doc.getElementById('panes');
       if (panes && panes.querySelector('.screen .screen-scroll') && !root.classList.contains('tg-settling')) {
