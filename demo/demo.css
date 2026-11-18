@@ -340,6 +340,7 @@
 .screen--wallet { --screen-ground: linear-gradient(180deg, var(--pf-top) 0, var(--pf-mid) 30vh, var(--bg) 62vh); }
 
 :root { --tab-top: var(--pf-top); --tab-mid: var(--pf-mid); }
+#panes { background: linear-gradient(180deg, var(--tab-top) 0, var(--tab-mid) 30vh, var(--bg) 62vh); }
 #pane-trade > .tk-feed, #pane-exchange > .ex-screen, #pane-bonus > .bonus-screen, #pane-profile > .screen--profile {
   --screen-ground: linear-gradient(180deg, var(--tab-top) 0, var(--tab-mid) 30vh, var(--bg) 62vh);
   background: var(--screen-ground);
