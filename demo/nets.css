@@ -11,3 +11,17 @@ span.sw-from { padding-right: 12px; }
 .tk-sheet-name .xn-net > span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: inherit; font-size: inherit; line-height: inherit; }
 .xn-net::after { content: ""; position: absolute; inset: -12px -8px; }
 .xn-net:active { opacity: .55; }
+
+.xo-fold[hidden], .xo-body[hidden], .xo-why[hidden] { display: none; }
+.xo-body { display: flex; flex-direction: column; }
+.xo-body .fold-row { min-height: 28px; align-items: center; }
+.xo-out { flex: none; width: 176px; }
+.xo-out > b { display: block; text-align: right; }
+.xo-week { display: inline-flex; align-items: center; }
+.xo-note { margin: 0; padding: 4px 0; font-size: 13px; line-height: 18px; color: var(--hint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.xo-note.xo-gap { white-space: normal; overflow: visible; }
+.xo-empty { color: var(--hint); }
+.xo-body .xo-term { min-height: 28px; }
+.xo-why { margin: 0; padding: 6px 0 0; font-size: 14px; line-height: 19px; color: var(--hint); }
+.xo-text { margin: 0; padding: 4px 0 8px; font-size: 15px; line-height: 21px; color: var(--text); }
+.xo-all { margin-top: var(--sp-12, 12px); }

@@ -1047,6 +1047,32 @@
     const sym = GAS_COIN[chain] || 'ETH';
     return { chain, chainName: chainNameOf(chain), address: nativeAddress(chain), symbol: sym, name: sym, decimals: gasDecimals(chain), gas: true };
   }
+
+  const XO = () => (window.DemoOrders && DemoOrders.x) || null;
+  const X_AGAIN_MS = 15000;
+  const X_QUOTE_PAUSE_MS = 600;
+  const X_BUSY = new Set(['jupiter_busy', 'rpc_busy', 'rate_limited', 'state_unknown', 'server_unknown', 'bundle_failed', 'quote_stale', 'setup_unseen']);
+  function stopFor(listing, selling, opts) {
+    const X = XO();
+    if (!X || !selling || !listing || listing.gas) return null;
+    const family = X.family(listing.chain);
+    if (!family || !X.open(family)) return null;
+    if (family === 'sol' && listing.coin) return null;
+    if (!Number.isInteger(listing.decimals)) return null;
+    const token = family === 'evm' && listing.coin ? NATIVE_ADDRESS : listing.address;
+    if (typeof token !== 'string' || !token) return null;
+    return { X, family, chain: listing.chain, token, coin: !!listing.coin, forOrder: !!(opts && opts.orders) };
+  }
+  function stopHtml(xd) {
+    return `<div class="or-fold xo-fold${xd.forOrder ? ' or-fold--out' : ''}"${xd.forOrder ? '' : ' hidden'}>${xd.forOrder ? '' : `<p class="sw-more-label">${tx('orders.stop')} / ${tx('orders.take')}</p>`}<div class="xo-body"><div class="or-rows"></div>`
+      + '<div class="fold-row xn-term xo-outrow"><span></span><div class="xo-out"></div></div>'
+      + `<div class="fold-row xn-term"><span>${tx('orders.floor')}</span><b class="xn-val xo-floor"></b></div>`
+      + `<div class="fold-row xn-term"><span>${tx(xd.family === 'sol' ? 'xorders.gasSol' : 'xorders.gas')}</span><b class="xn-val xo-gas"></b></div>`
+      + `<div class="fold-row xn-term"><span>${tx('xorders.week')}</span><b class="xn-val xo-week">${tx('orders.lineShort')}<button class="sw-why press" type="button" data-xwhy aria-label="${CK.esc ? CK.esc(tx('xorders.weekWhy')) : ''}">${icon('info', { size: 16 })}</button></b></div>`
+      + `<p class="xo-note xo-gap">${tx('xorders.gapNote')}</p>`
+      + '<p class="xo-note xo-fee"></p>'
+      + `<div class="sw-term or-term xo-term"><span>${tx('orders.now')}</span></div></div><p class="xo-why" hidden></p></div>`;
+  }
   function open(inst, side, opts) {
     if (CK.sheet.top || !cfg || !T.wallet || T.wallet.readOnly) {
       if (!cfg) loadCfg();
@@ -1102,9 +1128,12 @@
     const onVisible = () => {
       if (!document.hidden && !st.sending) refreshQuote();
     };
+    const xd = stopFor(listing, selling, opts);
+    const xBlock = xd ? stopHtml(xd) : '';
+    const sheetTitle = xd && xd.forOrder ? tx('orders.stop') : tx(selling ? 'swapSheet.sellTitle' : 'swapSheet.buyTitle', { sym: listing.symbol });
 
     CK.sheet.open({
-      title: tx(selling ? 'swapSheet.sellTitle' : 'swapSheet.buyTitle', { sym: listing.symbol }),
+      title: sheetTitle,
       detents: ['fit'],
       onClose() {
         mine.dispose();
@@ -1124,7 +1153,7 @@
         const closing = () => active !== mine || sheet.el.hasAttribute('inert');
         const address = !listing.gas && !listing.coin && typeof listing.address === 'string' ? listing.address : '';
         const head = CK.el(`<div class="tk-sheet-token">${CK.coinLogo(inst, 36)}<span class="tk-sheet-name"><b></b>${address ? '<button class="xn-net press" type="button"><span></span></button>' : '<span></span>'}</span></div>`);
-        $('.tk-sheet-name b', head).textContent = tx(selling ? 'swapSheet.sellTitle' : 'swapSheet.buyTitle', { sym: listing.symbol });
+        $('.tk-sheet-name b', head).textContent = sheetTitle;
         $(address ? '.xn-net span' : '.tk-sheet-name span', head).textContent = listing.label || netName;
         $('.sheet-title', sheet.el).replaceWith(head);
         if (address) {
@@ -1151,7 +1180,7 @@
           <div class="sw-sum">
             <p class="sw-get"><span class="sw-get-label">${tx('swapSheet.youGet')}</span><b class="sw-out"><span class="sw-out-main"><span class="sw-out-num"></span><span class="sw-out-sym"></span></span><span class="sw-out-val"></span></b></p>
             <p class="sw-fee-line"></p>
-          </div>
+          </div>${xd && xd.forOrder ? xBlock : ''}
           <button class="fold-toggle sw-more sw-more--form" type="button" aria-expanded="false" aria-controls="${moreId}"><span>${tx('common.more')}</span>${icon('chevron-down', { size: 16 })}</button>
           <div class="fold-body sw-more-body sw-more-form sw-fee" id="${moreId}" hidden>
             <div class="tk-order-slider"></div>
@@ -1159,7 +1188,7 @@
             <div class="fold-row xn-term xn-netrow" hidden><span>${tx('swap.networkFee')}</span><b class="xn-val xn-net">${SKEL}</b></div>`}
             ${selling || topup ? `<div class="fold-row xn-term"><span>${tx('xnet.gasRow', { net: netName })}</span><b class="xn-val xn-gas">${selling ? SKEL : fmt.usd(E.topupOf(chain).usd)}</b></div>` : ''}
             <div class="fold-row"><span>${tx('swap.min')}</span><b class="xn-val xn-min">${SKEL}</b></div>
-            ${slips ? `<div class="sw-slip-row"><span>${tx('swap.slippage')}</span><div class="sw-slip"></div></div>` : ''}
+            ${slips ? `<div class="sw-slip-row"><span>${tx('swap.slippage')}</span><div class="sw-slip"></div></div>` : ''}${xd && !xd.forOrder ? xBlock : ''}
           </div>`;
         CK.i18n.bind(body, () => {
           const topupEl = !selling && topup ? $('.xn-gas', body) : null;
@@ -1230,7 +1259,8 @@
             return;
           }
           if (offer.dataset.way === 'gas') {
-            afterClose = () => open(null, 'buy', { gas: chain, units: gasGram() });
+            const units = xs && xs.owns() ? xs.gasGram() : gasGram();
+            afterClose = () => open(null, 'buy', { gas: chain, units });
             sheet.close();
             return;
           }
@@ -1298,6 +1328,7 @@
           return parts.map((part) => (part.usd !== undefined ? fmt.usd(part.usd) : `${sig4(T.fromUnits(part.units, part.asset.decimals))} ${part.asset.sym}`)).join(' + ');
         }
         let shownFor = 0n;
+        let xs = null;
         let idleOut = false, idleRows = false;
         const zeroOf = (asset) => `${D.qty(0)} ${asset.sym}`;
         const saleGas = (cap) => {
@@ -1346,6 +1377,10 @@
           if (st.known) setText(balanceEl, qtySym(selling ? heldUnits() : payUsdt() ? st.usdt : st.gram, from));
           else skelOn(balanceEl);
           maxBtn.disabled = !st.known || maxUnits() <= 0n || st.sending;
+          if (xs && xs.owns()) {
+            paintStop();
+            return;
+          }
           if (!st.sending) {
             if (view) {
               const amount = T.fromUnits(view.out, outDecimals(view));
@@ -1546,7 +1581,7 @@
         function fetchQuote() {
           clearTimeout(quoteTimer);
           const g = ++gen;
-          if (st.units <= 0n || overBalance() || overCap() || !T.wallet || !st.addr || (saleCheck() && saleCheck().state === 'no')) {
+          if (st.units <= 0n || overBalance() || overCap() || !T.wallet || !st.addr || (saleCheck() && saleCheck().state === 'no') || (xs && xs.owns())) {
             st.plan = null;
             st.loading = false;
             paint();
@@ -1606,8 +1641,9 @@
           stopQuotes();
           st.plan = null;
           st.trouble = null;
-          st.loading = st.units > 0n && !!st.addr && !overBalance();
+          st.loading = st.units > 0n && !!st.addr && !overBalance() && !(xs && xs.owns());
           st.estimate = !st.loading ? null : st.rate > 0 ? st.rate * Number(st.units) : marketEstimate();
+          if (xs) xs.amountChanged();
           paint();
           askSoon();
         }
@@ -1654,6 +1690,340 @@
           if (slipApi) slipApi.picker($('.sw-slip', body), st.slippageBps, presets, own ? false : RELAY_SLIP_MAX_BPS, onSlip);
           else CK.segmented($('.sw-slip', body), { label: tx('swap.slippage'), size: 'small', value: String(st.slippageBps), items: presets.map((bps) => ({ value: String(bps), label: pctText(bps) })), onChange: (v) => onSlip(Number(v)) });
         }
+
+        function mountStop(d) {
+          const X = d.X;
+          const block = $('.xo-fold', body);
+          const xoBody = $('.xo-body', block), whyEl = $('.xo-why', block), outsHost = $('.xo-out', block);
+          const floorEl = $('.xo-floor', block), reserveEl = $('.xo-gas', block);
+          $('.xo-outrow span', block).textContent = tx('xorders.outIn', { net: netName });
+          $('.xo-fee', block).textContent = tx('xorders.fee', { pct: pctText(X.FEE_BPS) });
+          block.addEventListener('click', (e) => {
+            if (!e.target.closest || !e.target.closest('[data-xwhy]')) return;
+            CK.haptic.light();
+            CK.toast(tx('xorders.weekWhy'), { icon: 'info', tone: 'accent' });
+          });
+          const own = X.outs(d.family).filter((key) => !!X.outOf(chain, key) && !(d.coin && key === 'coin'));
+          const s = { outs: own.slice(), out: own[0], answer: X.answer(chain, d.token), off: null, quote: null, quoteErr: null, quoteTimer: 0, gen: 0, dead: false, gasShort: false, asking: 0 };
+          const outNow = () => X.outOf(chain, s.out);
+          const outUsd = () => X.outUsd(chain, outNow());
+          const market = () => {
+            const token = livePrice(tokenAsset), out = outUsd();
+            return token > 0 && out > 0 ? token / out : 0;
+          };
+          const outAt = (price, units) => X.outAt(price, units, from.decimals, outNow().decimals);
+          const quote = () => {
+            if (st.units <= 0n) return null;
+            if (s.quote && s.quote.view && s.quote.units === st.units && s.quote.out === s.out && typeof s.quote.view.expected === 'bigint') return { expectedOut: s.quote.view.expected };
+            const price = market();
+            return price > 0 ? { expectedOut: outAt(price * (1 - X.FEE_BPS / 10000), st.units) } : null;
+          };
+          const ctx = (placing) => ({ coin: gasSym, gas: { sym: gasSym, decimals: gasDec }, minUsd: s.answer && s.answer.minUsd, maxUsd: s.answer && s.answer.maxUsd, family: d.family, placing: !!placing });
+          const emptyGas = () => d.family === 'evm' && !d.coin && nets.native.get(chain) === 0n;
+          const rows = DemoOrders.attach($('.or-rows', block), {
+            token: { id: d.token, inst },
+            term: $('.xo-term', block),
+            decimals: () => from.decimals,
+            units: () => st.units,
+            quote,
+            held: () => (st.known ? heldUnits() : null),
+            out: () => ({ sym: outNow().sym, decimals: outNow().decimals, usd: outUsd }),
+            market,
+            termFixed: true,
+            needStop: d.family === 'sol',
+            floors: (stopOut) => X.floors(d.family, stopOut),
+            onChange() {
+              if (st.trouble && !st.trouble.fromQuote) st.trouble = null;
+              s.gasShort = false;
+              askQuote();
+              if (api.owns()) {
+                stopQuotes();
+                st.plan = null;
+                st.loading = false;
+                paint();
+              } else fetchQuote();
+            }
+          });
+          function paintOuts() {
+            if (s.outs.length > 1 && typeof CK.segmented === 'function') {
+              CK.segmented(outsHost, { label: tx('xorders.outIn', { net: netName }), size: 'small', value: s.out, items: s.outs.map((key) => ({ value: key, label: X.outOf(chain, key).sym })), onChange: (value) => setOut(value) });
+            } else {
+              outsHost.innerHTML = '<b class="xn-val"></b>';
+              $('b', outsHost).textContent = outNow().sym;
+            }
+          }
+          function setOut(key) {
+            if (st.sending || key === s.out || !s.outs.includes(key)) return;
+            CK.haptic.selection();
+            s.out = key;
+            s.quote = null;
+            s.quoteErr = null;
+            rows.outChanged();
+            askQuote();
+            paint();
+          }
+          function turnOff(t) {
+            s.off = t;
+            rows.turnOff();
+            rows.hold(false);
+            if (!d.forOrder) {
+              block.hidden = false;
+              xoBody.hidden = true;
+              whyEl.hidden = false;
+              whyEl.textContent = tx(t.key, t.params || undefined);
+            }
+          }
+          function takeAnswer(answer) {
+            s.answer = answer;
+            if (!answer) return;
+            if (answer.ok) {
+              const outs = s.outs.filter((key) => answer.outs.includes(key));
+              if (outs.length) {
+                s.outs = outs;
+                if (!outs.includes(s.out)) {
+                  s.out = outs[0];
+                  rows.outChanged();
+                }
+              }
+              paintOuts();
+              rows.hold(false);
+              if (!d.forOrder) block.hidden = false;
+            } else turnOff(X.trouble({ code: answer.code, reason: answer.reason, detail: { minUsd: answer.minUsd, maxUsd: answer.maxUsd } }, ctx()));
+          }
+          paintOuts();
+          if (s.answer) takeAnswer(s.answer);
+          else {
+            rows.hold(true);
+            const ask = () => X.check(chain, d.token).then((answer) => {
+              if (s.dead || closing()) return;
+              if (answer) {
+                takeAnswer(answer);
+                paint();
+              } else s.asking = setTimeout(ask, X_AGAIN_MS);
+            });
+            ask();
+          }
+          const currentKey = () => {
+            const want = rows.intent();
+            return [st.units, s.out, want.stopOut || 0n, want.takeOut || 0n].join('|');
+          };
+          const quoteSettled = () => d.family !== 'sol' || (!!s.quote && s.quote.key === currentKey()) || (!!s.quoteErr && s.quoteErr.key && s.quoteErr.at === currentKey());
+          function askQuote() {
+            clearTimeout(s.quoteTimer);
+            if (d.family !== 'sol' || s.off) return;
+            const want = rows.intent();
+            if (!want.stopOut || st.units <= 0n || (st.known && st.units > heldUnits())) return;
+            const key = currentKey();
+            if ((s.quote && s.quote.key === key) || (s.quoteErr && s.quoteErr.at === key)) return;
+            s.quoteErr = null;
+            const g = ++s.gen;
+            const units = st.units, out = s.out;
+            s.quoteTimer = setTimeout(() => {
+              X.quote(chain, { token: d.token, units, out, stopOut: want.stopOut, takeOut: want.takeOut }).then((view) => {
+                if (g !== s.gen || s.dead || closing()) return;
+                s.quote = { key, units, out, view };
+                if (view && typeof view.short === 'bigint' && view.short > 0n) s.quoteErr = { ...X.trouble({ code: 'sol_order_no_sol', needs: view.short, have: 0n }, ctx()), at: key };
+                paint();
+              }, (err) => {
+                if (g !== s.gen || s.dead || closing()) return;
+                if (err && err.code === 'xorder_no_slot' && err.reason === 'ahead') s.quote = { key, units, out, view: null };
+                else {
+                  const t = X.trouble(err, ctx());
+                  if (t.kind === 'token' || t.kind === 'closed') turnOff(t);
+                  else if (X_BUSY.has(err && err.code) || (err && err.code === 'xorder_closed')) {
+                    s.quote = { key, units, out, view: null };
+                    s.quoteErr = { ...t, block: false, tone: 'note', at: key };
+                  } else s.quoteErr = { ...t, at: key };
+                }
+                paint();
+              });
+            }, X_QUOTE_PAUSE_MS);
+          }
+          const unitsFor = (usd) => {
+            const price = livePrice(tokenAsset);
+            return usd > 0 && price > 0 ? T.toUnits(usd / price, from.decimals) : null;
+          };
+          function problem() {
+            if (s.off) return { ...s.off, block: true };
+            if (emptyGas()) return { ...X.trouble({ code: 'xorder_no_gas' }, ctx()), block: true };
+            if (!rows.active()) return null;
+            if (st.known && st.units > heldUnits()) return { key: 'walletFlow.overBalance', block: true };
+            const most = s.answer && s.answer.ok ? unitsFor(s.answer.maxUsd) : null;
+            if (most !== null && most > 0n && st.units > most) return { key: 'orders.maxUnits', params: { max: DemoWallet.unitsText(most, from.decimals), sym: from.sym }, block: true };
+            const least = s.answer && s.answer.ok ? unitsFor(s.answer.minUsd) : null;
+            if (least !== null && st.units > 0n && st.units < least) return { key: 'xorderErr.minUsd', params: { sum: fmt.usd(s.answer.minUsd) }, block: true };
+            const own = rows.problem();
+            if (own) return { ...own, block: true };
+            if (s.quoteErr && s.quoteErr.at === currentKey()) return s.quoteErr;
+            if (s.gasShort) return s.gasShort;
+            if (s.quote && s.quote.view && s.quote.view.freezable && s.quote.key === currentKey()) return { key: 'xorders.freeze', tone: 'warn' };
+            return null;
+          }
+          function paintLines() {
+            const o = outNow();
+            const want = rows.intent();
+            const least = want.stopOut ? X.floors(d.family, want.stopOut)[2] : want.takeOut || 0n;
+            setText(floorEl, `${sig4(T.fromUnits(least, o.decimals), true)} ${o.sym}`);
+            if (!rows.active()) setText(reserveEl, d.family === 'sol' ? zeroOf({ sym: 'SOL' }) : zeroOf({ sym: gasSym }));
+            else if (d.family === 'sol') {
+              const view = s.quote && s.quote.key === currentKey() ? s.quote.view : null;
+              if (view && typeof view.fund === 'bigint' && typeof view.nonces === 'bigint') setText(reserveEl, `≈ ${qtySym(view.fund + view.nonces, { sym: 'SOL', decimals: 9 })}`);
+              else skelOn(reserveEl);
+            } else {
+              const cap = typeof E.gasCap === 'function' ? E.gasCap(chain) : null;
+              if (typeof cap === 'bigint' && cap > 0n) setText(reserveEl, tx('xnet.upTo', { sum: qtySym(cap * (d.coin ? 3n : 4n), { sym: gasSym, decimals: gasDec }) }));
+              else skelOn(reserveEl);
+            }
+          }
+          const api = {
+            owns: () => !s.dead && (rows.active() || d.forOrder),
+            active: () => rows.active(),
+            off: () => !!s.off,
+            waiting: () => !s.off && (rows.waiting() || (rows.active() && !quoteSettled())),
+            paint() {
+              rows.paint();
+              paintLines();
+            },
+            amountChanged() {
+              askQuote();
+            },
+            problem,
+            ready: () => !s.off && !s.dead && !rows.waiting() && rows.active() && st.units > 0n && quoteSettled() && !(problem() || {}).block,
+            gasShort: () => !!(s.gasShort || emptyGas() || (s.quoteErr && s.quoteErr.kind === 'gas' && s.quoteErr.at === currentKey())),
+            gasGram() {
+              const t = s.gasShort || (s.quoteErr && s.quoteErr.kind === 'gas' && s.quoteErr.at === currentKey() ? s.quoteErr : null);
+              const short = t && typeof t.short === 'bigint' && t.short > 0n ? t.short : null;
+              const least = gasGramFor(chain);
+              const coinUsd = livePrice({ inst: nativeCoinOf(chain) });
+              const gramUsd = livePrice(gramOf());
+              if (!short || !(coinUsd > 0) || !(gramUsd > 0)) return least;
+              const usd = T.fromUnits(short, gasDec) * coinUsd * 1.25;
+              const units = T.toUnits((usd / gramUsd).toFixed(GRAM_DECIMALS), GRAM_DECIMALS);
+              return units > least ? units : least;
+            },
+            outText: () => rows.outText(),
+            outAmount: () => rows.outGram(),
+            outAsset: () => ({ id: `xo:${s.out}`, sym: outNow().sym, decimals: outNow().decimals, inst: outUsd() > 0 ? { price: outUsd() } : null }),
+            intent: () => ({ ...rows.intent(), token: d.token, out: s.out }),
+            failed(err) {
+              const t = X.trouble(err, ctx(true));
+              if (t.kind === 'token' || t.kind === 'closed') turnOff(t);
+              if (t.kind === 'gas') s.gasShort = t;
+              if (err && err.code === 'xorder_no_pool' && err.reason === 'usdc_leg' && s.outs.length > 1) {
+                s.outs = s.outs.filter((key) => key !== 'usdc');
+                s.out = s.outs[0];
+                rows.outChanged();
+                paintOuts();
+              }
+              return t;
+            },
+            placed(placed, want) {
+              X.placed({ chain, family: d.family, orderId: placed && placed.orderId, symbol: from.sym, decimals: from.decimals, units: want.units, out: outNow(), stopOut: want.stopOut, takeOut: want.takeOut });
+            },
+            firstBalance() {
+              if (d.forOrder && st.units <= 0n && maxUnits() > 0n && !(opts && opts.units > 0n)) {
+                const most = s.answer && s.answer.ok ? unitsFor(s.answer.maxUsd) : null;
+                const units = most !== null && most > 0n && most < maxUnits() ? most : maxUnits();
+                input.value = DemoWallet.unitsText(units, from.decimals);
+                input.dispatchEvent(new Event('input'));
+              }
+            },
+            call: () => rows.call(),
+            dispose() {
+              s.dead = true;
+              s.gen++;
+              clearTimeout(s.quoteTimer);
+              clearTimeout(s.asking);
+            }
+          };
+          return api;
+        }
+        function paintStop() {
+          xs.paint();
+          if (!st.sending) {
+            const text = xs.outText();
+            const asset = xs.outAsset();
+            CK.roll(outNum, text || D.qty(0));
+            outSym.textContent = ` ${asset.sym}`;
+            const amount = xs.outAmount();
+            CK.roll(outVal, text && amount > 0 ? worthText(asset, amount) : '');
+            shownFor = st.units;
+            idleOut = false;
+            [out, feeLineEl, moreBox].forEach((el) => {
+              el.classList.remove('is-loading');
+              el.classList.remove('is-void');
+            });
+            feeText.set(pctText(DemoOrders.x.FEE_BPS));
+          }
+          let line = st.trouble, blocked = !!(st.trouble && st.trouble.block);
+          if (!blocked) {
+            const p = xs.problem();
+            if (p) {
+              line = p;
+              blocked = !!p.block;
+            }
+          }
+          if (st.note) setLine(st.note.key || st.note, st.note.params || null, 'note');
+          else if (line) setLine(line.key, line.params, line.tone);
+          else setLine('');
+          const way = st.sending || !passBox.hidden || !st.known ? '' : xs.gasShort() ? 'gas' : '';
+          if (offer.dataset.way !== way) {
+            offer.dataset.way = way;
+            offer.textContent = way ? tx('xnet.gasTopup', { net: netName, sym: gasSym }) : '';
+          }
+          offer.hidden = !way;
+          swipeHost.hidden = !!way || !passBox.hidden;
+          let label = 'orders.swipe';
+          if (!st.known) label = 'swap.waitBalance';
+          else if (st.units <= 0n && heldUnits() <= 0n) label = 'order.notHeld';
+          else if (st.units <= 0n) label = 'order.needAmount';
+          else if (!xs.active()) label = xs.off() || xs.waiting() ? 'orders.swipe' : 'xorders.pickLevel';
+          else if (!blocked && xs.waiting()) label = 'swap.waitQuote';
+          const ready = st.known && st.units > 0n && !blocked && xs.ready();
+          swipe.setDisabled(!ready || st.sending);
+          swipe.update({ label: tx(label, { sym: from.sym }), tone: 'sell' });
+        }
+        async function placeStop() {
+          if (!xs.ready() || st.sending) {
+            paint();
+            return false;
+          }
+          if (!begin()) return false;
+          let want = null;
+          try {
+            const stop = await signable();
+            if (stop) return release(stop);
+            want = xs.intent();
+            const steps = { setup: 'xorders.stepSetup', signed: 'xorders.stepSave', created: 'xorders.stepFund' };
+            const placed = await unlocked((options) => DemoOrders.x.place(chain, want, options, (name) => { if (steps[name] && !closing()) note(steps[name]); }));
+            if (placed === CANCELLED) return false;
+            CK.haptic.success();
+            afterClose = () => xs.placed(placed, want);
+            st.sending = false;
+            sheet.close();
+            return undefined;
+          } catch (err) {
+            if (CK.wallet.isRejection(err)) {
+              CK.toast(tx(CK.wallet.protectRefused(err) ? 'wallet.needProtect' : 'swap.rejected'), { icon: 'info', tone: 'accent' });
+              return release();
+            }
+            if (want && err && typeof err.orderId === 'string' && xd.family === 'sol') {
+              DemoOrders.x.resendSetup(err);
+              CK.haptic.success();
+              afterClose = () => xs.placed({ orderId: err.orderId }, want);
+              st.sending = false;
+              sheet.close();
+              return undefined;
+            }
+            const t = xs.failed(err);
+            if (!t.block) console.error(err);
+            if (t.key === 'xorderErr.placeUnsure') DemoOrders.x.refresh();
+            return release(t.block ? { key: t.key, params: t.params, block: true } : { key: t.key });
+          } finally {
+            building = false;
+          }
+        }
+        xs = xd ? mountStop(xd) : null;
 
         function setPay(usdt, units = 0n) {
           if (payUsdt() === !!usdt) return;
@@ -2038,6 +2408,7 @@
           return true;
         }
         function confirm() {
+          if (xs && xs.owns()) return placeStop();
           if (!fresh()) return false;
           if (saleUnknown() || (saleCheck() && saleCheck().state === 'no')) {
             paint();
@@ -2069,6 +2440,7 @@
             st.known = true;
             paintChip();
             applyPrefill();
+            if (first && xs) xs.firstBalance();
             if (first && canSwitch() && !payUsdt() && st.units <= 0n && st.gram <= PAY_RESERVE) setPay(true);
             paint();
           }, () => {
@@ -2095,6 +2467,7 @@
           clearInterval(timer);
           document.removeEventListener('visibilitychange', onVisible);
           if (passDone) passDone(null);
+          if (xs) xs.dispose();
         };
         if (opts && opts.units > 0n) {
           st.units = opts.units;
@@ -2106,6 +2479,7 @@
         if (netRow && canUsdt) netRow.hidden = false;
         pinHeight(this, sheet, formFloor(), payJet ? undefined : 0);
         if (netRow) netRow.hidden = netHidden;
+        if (xs && xd.forOrder) xs.call();
         whatsThere();
         setTimeout(() => {
           if (!closing() && CK.wallet) CK.wallet.depositAddress().catch(() => {});
@@ -2534,6 +2908,19 @@
       if (T.wallet) walletChanged(T.wallet);
     },
     listed: (inst) => !!listingOf(inst),
+    decimalsOf(chain, address) {
+      if (typeof chain !== 'string' || typeof address !== 'string' || !address) return null;
+      if (chain !== 'solana' && address.toLowerCase() === NATIVE_ADDRESS) return WEI_DECIMALS;
+      const key = chain === 'solana' ? `solana:${address}` : `${chain}:${address.toLowerCase()}`;
+      const token = LISTED.get(key) || REFUNDS.get(key) || seen.get(key);
+      return token && Number.isInteger(token.decimals) ? token.decimals : null;
+    },
+    txLink(chain, hash) {
+      const base = EVM_EXPLORER[chain];
+      if (!base || typeof hash !== 'string') return null;
+      const ok = chain === 'solana' ? /^[1-9A-HJ-NP-Za-km-z]{64,90}$/.test(hash) : /^0x[0-9a-f]{64}$/i.test(hash);
+      return ok ? base + hash : null;
+    },
     marketCoinOf,
     networkOf,
     chains: () => E.pins().chains.map((chain) => ({ key: chain.key, name: chain.name, gas: GAS_COIN[chain.key] || 'ETH', inst: D.byId[(GAS_COIN[chain.key] || 'ETH').toLowerCase()] || null, mark: netMark(chain.key), net: null, deposit: true }))
