@@ -305,6 +305,34 @@
   let forcedTheme = null;
   try { forcedTheme = /^(light|dark)$/.test(localStorage.getItem('ck-theme2')) ? localStorage.getItem('ck-theme2') : null; } catch (_) { }
 
+  const SWIPE_LOCK_KEY = 'ck-swipe-lock';
+  let swipeLocked = true;
+  try { swipeLocked = localStorage.getItem(SWIPE_LOCK_KEY) !== '0'; } catch (_) { }
+  function applySwipe() {
+    if (webApp && atLeast('7.7')) {
+      try {
+        if (swipeLocked) webApp.disableVerticalSwipes();
+        else webApp.enableVerticalSwipes();
+        return;
+      } catch (_) { }
+    }
+    if (launched) post('web_app_setup_swipe_behavior', { allow_vertical_swipe: !swipeLocked });
+  }
+  let uprightLocked = false;
+  const upright = () => window.innerHeight >= window.innerWidth;
+  function lockUpright() {
+    if (uprightLocked || !upright()) return;
+    if (webApp) {
+      if (!atLeast('8.0') || typeof webApp.lockOrientation !== 'function') return;
+      try {
+        webApp.lockOrientation();
+        uprightLocked = true;
+      } catch (_) { }
+      return;
+    }
+    if (launched) post('web_app_toggle_orientation_lock', { locked: true });
+  }
+
   function stripTelegramColors() {
     Array.from(root.style).filter((name) => name.startsWith('--tg-theme-')).forEach((name) => root.style.removeProperty(name));
   }
@@ -343,6 +371,12 @@
       paintBars();
     },
     repaint() { paintBars(); },
+    get swipeLocked() { return swipeLocked; },
+    setSwipeLock(on) {
+      swipeLocked = on !== false;
+      try { localStorage.setItem(SWIPE_LOCK_KEY, swipeLocked ? '1' : '0'); } catch (_) { }
+      applySwipe();
+    },
     get app() { return webApp; },
     init() {
       const sdk = window.Telegram && window.Telegram.WebApp;
@@ -353,7 +387,8 @@
       if (pageReady) webApp.ready();
       webApp.expand();
       requestFullscreen();
-      try { if (atLeast('7.7')) webApp.disableVerticalSwipes(); } catch (_) { }
+      applySwipe();
+      lockUpright();
       applyScheme();
       CK.i18n.adoptTelegram();
       webApp.onEvent('themeChanged', applyScheme);
@@ -439,7 +474,9 @@
         else setTimeout(wait, 40);
       })();
     }
-    post('web_app_setup_swipe_behavior', { allow_vertical_swipe: false });
+    applySwipe();
+    lockUpright();
+    window.addEventListener('resize', lockUpright);
   }
   function afterFirstFrame(fn) {
     let ran = false;

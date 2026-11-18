@@ -44,9 +44,18 @@
 .sp-m{left:50%;top:330px;width:240px;height:172px;margin:-86px 0 0 -120px}
 .sp-g{left:50%;top:62px;width:340px;height:340px;margin:-170px 0 0 -170px;background:radial-gradient(closest-side,rgba(255,255,255,.38),rgba(255,255,255,.1) 46%,transparent)}
 .sp-k{left:50%;top:0;width:124px;height:124px;margin-left:-62px}
-#dp-splash .sp-h{inset:0;width:100%;height:100%;fill:#fff;filter:drop-shadow(0 8px 14px var(--sp-sh))}
-#dp-splash .sp-w{left:50%;top:148px;width:176px;height:24.4px;margin-left:-88px;fill:#fff}
+#dp-splash .sp-h{inset:0;width:100%;height:100%;fill:#fff;filter:drop-shadow(0 8px 14px var(--sp-sh));opacity:0;will-change:transform,opacity;animation:sp-in-late .78s cubic-bezier(.22,1,.36,1) 1.1s forwards}
+.sp-l{--y:22px}
+.sp-r{--y:-22px}
+#dp-splash .sp-w{left:50%;top:148px;width:176px;height:24.4px;margin-left:-88px;fill:#fff;opacity:0;will-change:transform,opacity;animation:sp-rise-late .84s cubic-bezier(.22,1,.36,1) 1.1s forwards}
+:root.sp-go #dp-splash .sp-h{animation:sp-in .78s cubic-bezier(.22,1,.36,1) forwards}
+:root.sp-go #dp-splash .sp-w{animation:sp-rise .84s cubic-bezier(.22,1,.36,1) forwards}
+@keyframes sp-in{from{opacity:0;transform:translate3d(0,var(--y),0)}to{opacity:1;transform:none}}
+@keyframes sp-in-late{from{opacity:0;transform:translate3d(0,var(--y),0)}to{opacity:1;transform:none}}
+@keyframes sp-rise{0%,24%{opacity:0;transform:translate3d(0,8px,0)}to{opacity:1;transform:none}}
+@keyframes sp-rise-late{0%,24%{opacity:0;transform:translate3d(0,8px,0)}to{opacity:1;transform:none}}
 @keyframes sp-gone{to{opacity:0;visibility:hidden}}
+@media (prefers-reduced-motion:reduce){#dp-splash .sp-h,#dp-splash .sp-w{opacity:1;animation:none}}
 :root.sp-on.tg-settling .app{opacity:1;transform:none}
 :root.sp-on .app,:root.sp-on #tabbar{transition:none}
 </style>

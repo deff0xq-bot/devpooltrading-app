@@ -546,6 +546,7 @@
   };
 
   const LAUNCH_MAX_MS = 1800, MIN_SHOW_MS = 1200, FADE_MS = 420, SPLASH_HARD_MS = 12000;
+  const GO_SHOW_MS = 1140, LATE_SHOW_MS = 2240;
   (function launchEntrance() {
     const raf = typeof window.requestAnimationFrame === 'function' ? window.requestAnimationFrame.bind(window) : null;
     const splash = typeof doc.getElementById === 'function' ? doc.getElementById('dp-splash') : null;
@@ -573,6 +574,13 @@
       } catch (_) { }
       if (t < 0) t = frameAt;
       return t < 0 ? -1 : Math.max(0, t, toldAt);
+    };
+    const firstPaint = () => {
+      try {
+        const paints = performance.getEntriesByType('paint');
+        if (paints && paints.length) return Math.min(...paints.map((p) => p.startTime));
+      } catch (_) { }
+      return frameAt >= 0 ? frameAt : started;
     };
     CK.launch = { get headerHeld() { return headerHeld; }, get shownAt() { return shownAt(); } };
     if (!raf || typeof setTimeout !== 'function' || !root || !root.classList) { dropSplash(); return; }
@@ -627,9 +635,23 @@
         if (typeof window.removeEventListener === 'function') window.removeEventListener('resize', resized);
       };
     }
+    let goAt = -1, lateMark = false;
+    const startMark = () => {
+      if (!splash || calm || root.classList.contains('sp-go')) return;
+      let hidden = false;
+      try {
+        const half = splash.querySelector('.sp-h');
+        hidden = !!half && Number(getComputedStyle(half).opacity) === 0;
+        lateMark = !!half && !hidden;
+      } catch (_) { }
+      if (!hidden) return;
+      root.classList.add('sp-go');
+      goAt = now();
+    };
     if (splash && CK.tg && CK.tg.ready) {
       raf(() => setTimeout(() => {
         if (CK.tg.inside && toldAt < 0) toldAt = now();
+        startMark();
         CK.tg.ready();
       }));
     }
@@ -720,7 +742,10 @@
         });
         return;
       }
-      const until = splash && shown >= 0 ? shown + MIN_SHOW_MS : 0;
+      startMark();
+      let until = splash && shown >= 0 ? shown + MIN_SHOW_MS : 0;
+      if (splash && !calm && goAt >= 0) until = Math.max(until, goAt + GO_SHOW_MS);
+      else if (splash && !calm && lateMark) until = Math.max(until, firstPaint() + LATE_SHOW_MS);
       const wait = Math.max(0, until - now());
       if (wait > 0) setTimeout(() => go(animate), wait);
       else go(animate);

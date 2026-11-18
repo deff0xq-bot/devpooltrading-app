@@ -1433,6 +1433,7 @@ CK.buildApp(function () {
         ${tileCell({ id: 'row-lang', icon: 'globe', tone: 'teal', key: 'profile.lang', value: CK.esc(CK.i18n.name) })}
         ${tileCell({ id: 'row-currency', icon: 'bank', tone: 'green', key: 'profile.currency', value: CK.esc(currencySign()) })}
         ${switchCell({ id: 'sw-haptic', icon: 'activity', tone: 'purple', key: 'profile.haptic' })}
+        ${CK.tg.inside ? switchCell({ id: 'sw-swipelock', icon: 'lock', tone: 'blue', key: 'profile.swipeLock' }) : ''}
       </div>
       <div class="group">
         ${tileCell({ id: 'row-fees', icon: 'percent', tone: 'blue', key: 'fees.row' })}
@@ -1604,6 +1605,8 @@ CK.buildApp(function () {
       nameFallback();
     });
     CK.toggle($('#sw-haptic', settings), { label: tr('profile.haptic'), value: CK.haptic.enabled, onChange(v) { CK.haptic.enabled = v; } });
+    const swipeLock = $('#sw-swipelock', settings);
+    if (swipeLock) CK.toggle(swipeLock, { label: tr('profile.swipeLock'), value: CK.tg.swipeLocked, onChange(v) { CK.tg.setSwipeLock(v); } });
     CK.i18n.bind(screen.el, () => {
       $('#row-lang [data-value]', settings).textContent = CK.i18n.name;
       $('#row-currency [data-value]', settings).textContent = currencySign();

@@ -350,6 +350,7 @@
     'profile.settings': ['Настройки', 'Settings', 'Налаштування', 'Баптаулар'],
     'profile.tgColors': ['Цвета Telegram', 'Telegram colors', 'Кольори Telegram', 'Telegram түстері'],
     'profile.haptic': ['Вибрация', 'Haptics', 'Вібрація', 'Діріл'],
+    'profile.swipeLock': ['Закрепить экран', 'Lock the screen', 'Закріпити екран', 'Экранды бекіту'],
     'profile.findable': ['Поиск по @{u}', 'Find me by @{u}', 'Пошук за @{u}', '@{u} арқылы іздеу'],
     'profile.findableFail': ['Не сохранилось', 'Not saved', 'Не збереглося', 'Сақталмады'],
     'profile.lang': ['Язык', 'Language', 'Мова', 'Тіл'],
