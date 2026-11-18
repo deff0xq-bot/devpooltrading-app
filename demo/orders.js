@@ -200,7 +200,7 @@
   const X_OPEN = new Set(['funding', 'arming', 'active', 'firing', 'returning', 'cancelling', 'replacing', 'stale']);
   const X_ENDED = new Set(['filled', 'missed', 'expired', 'returned', 'retired', 'unwound', 'feeRaised', 'notPlaced', 'landed', 'stuck', 'ended']);
   const X_LEFT = new Set(['landed', 'stuck']);
-  const X_HOLDS = new Set(['active', 'stale', 'firing', 'replacing', 'cancelling', 'returning', 'landed', 'stuck']);
+  const X_HOLDS = new Set(['arming', 'active', 'stale', 'firing', 'replacing', 'cancelling', 'returning', 'landed', 'stuck']);
   const xLib = (family) => {
     const lib = family === 'evm' ? CK.evmOrders : family === 'sol' ? CK.solOrders : null;
     return lib && typeof lib === 'object' ? lib : null;
@@ -1807,6 +1807,7 @@
       });
       xorders = next;
       xHeard = true;
+      xHeldListed();
       xNoteBusy(xorders);
       if (xorders.length) xSeen(wallet);
       else xRecordsAsk();
@@ -2690,6 +2691,134 @@
   }
   let built = false;
 
+
+  const X_HELD_AS = new Map([['base:0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf', 'btc'], ['bsc:0x1d2f0da169ceb9fc7b3144628db156f3f6c60dbe', 'xrp'], ['bsc:0xba2ae424d960c26247dd6c32edc70b295c744c43', 'doge']]);
+  const xInstrument = (id) => (D.instruments && typeof D.instruments.get === 'function' ? D.instruments.get(id) || null : null);
+  function xCoinOf(chain) {
+    const sym = X_COIN[chain];
+    if (!sym || chain === X_SOL) return null;
+    const net = window.DemoNets && typeof DemoNets.chains === 'function' ? DemoNets.chains().find((one) => one.key === chain) : null;
+    return xInstrument(`${chain}:${X_NATIVE}`) || xInstrument(`${chain}:${sym.toLowerCase()}`) || (net && net.inst) || null;
+  }
+  function xTokenOf(o) {
+    const key = `${o.chain}:${o.token}`;
+    const as = X_HELD_AS.get(key);
+    if (as && D.byId[as]) return D.byId[as];
+    const known = xInstrument(key);
+    if (known) return known;
+    if (typeof D.instrumentOf !== 'function' || !CK.market || typeof CK.market.cleanToken !== 'function') return null;
+    const clean = CK.market.cleanToken({ id: key, network: o.chain, address: o.token, symbol: o.symbol, name: o.symbol, risk: 'none' });
+    return clean ? D.instrumentOf(clean) : null;
+  }
+  function xHeldLinesOf(o) {
+    const net = xNetName(o.chain);
+    const lines = [];
+    const coin = o.family === 'evm' && o.token === X_NATIVE ? xCoinOf(o.chain) : xTokenOf(o);
+    if (coin && o.units > 0n) lines.push({ coin, units: o.units, decimals: o.decimals, net });
+    if (o.family === 'evm' && typeof o.G === 'bigint' && o.G > 0n) {
+      const gas = xCoinOf(o.chain);
+      if (gas) lines.push({ coin: gas, units: o.G, decimals: 18, net });
+    }
+    return lines;
+  }
+  const X_HELD_RETRY_MS = 30000;
+  const X_UNFUNDED = new Set(['cancelling', 'returning']);
+  const xHeldSeen = new Map();
+  let xHeldFor = null, xHeldAsked = 0, xHeldRead = null, xHeldAgain = false, xHeldRetryAt = 0, xHeldKey = '';
+  const xReads = () => !!window.DemoNets && typeof DemoNets.loadBalances === 'function';
+  function xHeldDown() {
+    try {
+      const names = window.DemoNets && typeof DemoNets.down === 'function' ? DemoNets.down() : [];
+      return new Set(Array.isArray(names) ? names : []);
+    } catch (_) {
+      return new Set();
+    }
+  }
+  function xHeldReread() {
+    if (!xReads()) return;
+    if (xHeldRead) {
+      xHeldAgain = true;
+      return;
+    }
+    xHeldAgain = false;
+    const number = ++xHeldAsked;
+    xHeldRead = Promise.resolve().then(() => {
+      const probe = DemoNets.loadBalances(false);
+      const job = DemoNets.loadBalances(true);
+      if (job !== probe) return job;
+      return Promise.resolve(job).catch(() => null).then(() => DemoNets.loadBalances(true));
+    }).catch(() => null).then(() => {
+      xHeldRead = null;
+      const down = xHeldDown();
+      xHeldSeen.forEach((seen) => {
+        if (seen.wait === null || seen.wait > number) return;
+        if (!down.has(seen.net)) {
+          seen.wait = null;
+          return;
+        }
+        seen.wait = xHeldAsked + 1;
+        xHeldRetryAt = Date.now() + X_HELD_RETRY_MS;
+      });
+      if (xHeldAgain) xHeldReread();
+      if (typeof D.recount === 'function') D.recount();
+    });
+  }
+  function xHeld() {
+    if (!xHeard) return [];
+    const wallet = T.wallet ? T.wallet.address : null;
+    const first = xHeldFor !== wallet;
+    if (first) {
+      xHeldSeen.clear();
+      xHeldFor = wallet;
+    }
+    if (!xorders.length && !xHeldSeen.size) {
+      xHeldKey = '';
+      return [];
+    }
+    const reads = xReads();
+    const next = reads ? xHeldAsked + 1 : null;
+    const listed = new Set();
+    const lines = [];
+    const counted = [];
+    let moved = false;
+    xorders.forEach((o) => {
+      listed.add(o.id);
+      let seen = xHeldSeen.get(o.id);
+      const unfunded = X_UNFUNDED.has(o.state) && !!seen && (seen.state === 'funding' || (seen.unfunded && seen.state === o.state));
+      const holds = X_HOLDS.has(o.state) && !unfunded;
+      if (!seen) {
+        seen = { holds, base: first && holds, state: o.state, unfunded, net: xNetName(o.chain), wait: first || !holds ? null : next };
+        xHeldSeen.set(o.id, seen);
+        if (seen.wait !== null) moved = true;
+      } else {
+        if (seen.holds !== holds) {
+          if (seen.wait === null) seen.base = seen.holds;
+          seen.wait = next;
+          moved = true;
+        } else if (seen.unfunded && !unfunded && reads) {
+          moved = true;
+        }
+        seen.holds = holds;
+        seen.state = o.state;
+        seen.unfunded = unfunded;
+      }
+      if (seen.wait === null ? holds : seen.base) {
+        xHeldLinesOf(o).forEach((line) => lines.push(line));
+        counted.push(`${o.id}:${o.units}:${o.G}`);
+      }
+    });
+    xHeldSeen.forEach((_, id) => { if (!listed.has(id)) xHeldSeen.delete(id); });
+    xHeldKey = counted.join();
+    const stale = !moved && !xHeldRead && Date.now() >= xHeldRetryAt && Array.from(xHeldSeen.values()).some((seen) => seen.wait !== null);
+    if (moved || stale) xHeldReread();
+    return lines;
+  }
+  function xHeldListed() {
+    const before = xHeldKey;
+    xHeld();
+    if (xHeldKey !== before && typeof D.recount === 'function') D.recount();
+  }
+
   window.DemoOrders = {
     GRAM_NEEDED,
     GAS_ON_ORDER,
@@ -2752,7 +2881,7 @@
       outAt: xOutAt,
       placed: openXPlaced,
       resendSetup: xResendSetup,
-      held: () => xorders.filter((o) => X_HOLDS.has(o.state)).map((o) => ({ coin: xInstOf(o), units: o.units, decimals: o.decimals, net: xNetName(o.chain) })).filter((line) => !!line.coin),
+      held: xHeld,
       refresh: xRefresh,
       FEE_BPS: X_FEE_BPS,
       view: (raw, family) => {

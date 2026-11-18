@@ -277,6 +277,29 @@
     const fresh = new Set(onNets.map((line) => line.net));
     return onNets.concat(keptNets.filter((line) => !fresh.has(line.net)));
   }
+  const STOP_NET_MAX = 32;
+  function stopLines() {
+    const x = window.DemoOrders && window.DemoOrders.x;
+    if (!x || typeof x.held !== 'function') return [];
+    let lines;
+    try {
+      lines = x.held();
+    } catch (err) {
+      console.error(err);
+      return [];
+    }
+    if (!Array.isArray(lines) || !lines.length) return [];
+    return lines.filter((line) => line && line.coin && typeof line.coin === 'object' && typeof line.units === 'bigint' && line.units > 0n
+      && Number.isInteger(line.decimals) && line.decimals >= 0 && line.decimals <= 30)
+      .map((line) => ({ coin: line.coin, units: line.units, decimals: line.decimals, chainUsd: null, flagged: false, net: typeof line.net === 'string' && line.net && line.net.length <= STOP_NET_MAX ? line.net : null }));
+  }
+  function joinLines(had, line) {
+    const chainUsd = had.chainUsd === null || line.chainUsd === null ? null : had.chainUsd + line.chainUsd;
+    if (had.decimals === line.decimals) return { ...had, units: had.units + line.units, chainUsd };
+    const decimals = Math.max(had.decimals, line.decimals);
+    const at = (one) => one.units * 10n ** BigInt(decimals - one.decimals);
+    return { ...had, units: at(had) + at(line), decimals, chainUsd };
+  }
 
   const KEPT_KEY = 'ck-folio-kept';
   const KEPT_VERSION = 1;
@@ -451,15 +474,18 @@
       onOrders = rows.map(cleanBalance).filter(Boolean);
       notify();
     },
+    recount() {
+      notify();
+    },
     ordered() {
-      return onOrders.filter((line) => line.units > 0n).map(heldRow);
+      return onOrders.concat(stopLines()).filter((line) => line.units > 0n).map(heldRow);
     },
     counted() {
       const lines = new Map();
-      (balances || []).concat(onOrders, netLines()).forEach((line) => {
+      (balances || []).concat(onOrders, netLines(), stopLines()).forEach((line) => {
         if (!(line.units > 0n)) return;
         const had = lines.get(line.coin);
-        lines.set(line.coin, had ? { ...had, units: had.units + line.units, chainUsd: had.chainUsd === null || line.chainUsd === null ? null : had.chainUsd + line.chainUsd } : line);
+        lines.set(line.coin, had ? joinLines(had, line) : line);
       });
       return Array.from(lines.values()).map(heldRow).sort((a, b) => b.usd - a.usd);
     },
