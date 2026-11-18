@@ -1426,6 +1426,11 @@
     depositBody,
     deriveAddress,
     keyOf,
+    signTx,
+    chainRows: () => Object.keys(CHAINS).map((key) => {
+      const { tokens: list, refund, swaps, ...rest } = CHAINS[key];
+      return Object.freeze({ key, ...rest, swaps: swaps.slice(), refund: refund.map((token) => ({ ...token })), tokens: list.map((token) => ({ ...token })) });
+    }),
     pins: () => ({
       depository: DEPOSITORY,
       depositoryRaw: DEPOSITORY_RAW,

@@ -1466,6 +1466,58 @@
     const holds = await holderAlts(own, rec.sol, launch).catch(() => []);
     return { alts: [...(rec.kind === 'bip39' ? rec.alts : []), ...holds.filter((one) => !rec.alts.some((alt) => alt.address === one.address))], holds };
   }
+  const ORDERS_FILE = 'solOrders.js';
+  const ORDER_PATH = /^order:(0|[1-9]\d{0,9})$/;
+  const ordersScript = (() => {
+    try {
+      const bound = (proto, name) => Function.prototype.call.bind(Object.getOwnPropertyDescriptor(proto, name).get);
+      const current = bound(Document.prototype, 'currentScript');
+      const srcOf = bound(HTMLScriptElement.prototype, 'src');
+      const doc = document;
+      const Url = URL;
+      const origin = String(location.origin);
+      const path = () => {
+        try {
+          const script = current(doc);
+          if (!script) return null;
+          const url = new Url(srcOf(script));
+          return url.origin === origin ? url.pathname : null;
+        } catch (_) {
+          return null;
+        }
+      };
+      const self = path();
+      if (!self) return null;
+      return Object.freeze({ path, folder: self.slice(0, self.lastIndexOf('/') + 1) });
+    } catch (_) {
+      return null;
+    }
+  })();
+  let ordersHooked = null;
+  let ordersClosed = false;
+  if (typeof document !== 'undefined' && document && typeof document.addEventListener === 'function') {
+    document.addEventListener('DOMContentLoaded', () => { ordersClosed = true; }, { once: true });
+  }
+  function ordersHook(api) {
+    if (ordersClosed || ordersHooked || !ordersScript) return false;
+    const path = ordersScript.path();
+    if (path === null || path !== ordersScript.folder + ORDERS_FILE) return false;
+    const fns = api && typeof api === 'object' ? { endedFor: api.endedFor, endedLook: api.endedLook, endedSweep: api.endedSweep } : null;
+    if (!fns || Object.keys(fns).some((name) => typeof fns[name] !== 'function')) return false;
+    ordersHooked = Object.freeze(fns);
+    return true;
+  }
+  const ordersApi = () => ordersHooked;
+  async function endedOrders(own) {
+    const api = ordersApi();
+    if (!api) return [];
+    try {
+      const list = await api.endedFor(own);
+      return Array.isArray(list) ? list : [];
+    } catch (_) {
+      return [];
+    }
+  }
   function altLook(options) {
     const opts = options || {};
     const wallet = T.wallet;
@@ -1482,8 +1534,9 @@
       }
       if (!rec || (rec.own && rec.own !== own)) return null;
       const { alts, holds } = await altsOf(rec, own, opts.launch);
-      if (!alts.length) return null;
-      if (opts.launch && doneRecently(own) && !holds.length) return null;
+      const ended = await endedOrders(own);
+      if (!alts.length && !ended.length) return null;
+      if (opts.launch && doneRecently(own) && !holds.length && !ended.length) return null;
       const found = [], unknown = [];
       let stays = false;
       for (const alt of alts) {
@@ -1494,6 +1547,14 @@
         } catch (err) {
           console.warn('sol: another address was not read', err && (err.code || err.message));
           unknown.push(alt.path);
+        }
+      }
+      if (ended.length) {
+        const seen = await ordersApi().endedLook(ended).catch(() => null);
+        if (!seen) ended.forEach((one) => unknown.push(one.path));
+        else {
+          (Array.isArray(seen.found) ? seen.found : []).forEach((one) => found.push(one));
+          (Array.isArray(seen.unknown) ? seen.unknown : []).forEach((path) => unknown.push(path));
         }
       }
       const result = { found, unknown, empty: !found.length && !unknown.length };
@@ -1813,7 +1874,8 @@
       const rec = altRecord();
       if (!rec || (rec.own && rec.own !== own)) throw fail('no_sol_address');
       const { alts } = await altsOf(rec, own, false);
-      if (!alts.length) throw fail('no_sol_address');
+      const ended = await endedOrders(own);
+      if (!alts.length && !ended.length) throw fail('no_sol_address');
       const to = rec.sol;
       const lib = await bundle();
       const left = [], plans = [];
@@ -1840,8 +1902,8 @@
         return !!seen && seen.empty;
       };
       const work = plans.filter((plan) => plan.tokens.length || plan.sweep);
-      if (!work.length) return { moved: [], left, empty: await after(), gas: gasOf(), kept: [] };
-      const of = work.reduce((sum, plan) => sum + plan.tokens.length + (plan.sweep ? 1 : 0), 0);
+      if (!work.length && !ended.length) return { moved: [], left, empty: await after(), gas: gasOf(), kept: [] };
+      const of = work.reduce((sum, plan) => sum + plan.tokens.length + (plan.sweep ? 1 : 0), 0) + ended.length;
       let done = 0;
       const out = { moved: [], left, kept: new Set() };
       await withKey(async (key, keyOwn, more) => {
@@ -1849,20 +1911,40 @@
         if (key.address !== to) throw fail('address_mismatch');
         if (!more || typeof more.alt !== 'function') throw fail('bad_intent', { reason: 'key' });
         step('signed', { done, of });
+        const tick = (name) => {
+          if (name === 'landed') done += 1;
+          step(name, { done, of });
+        };
         for (let i = 0; i < work.length; i++) {
           const plan = work[i];
           try {
             const source = await more.alt(plan.path);
             if (source.address !== plan.address) throw fail('address_mismatch');
-            await runAlt(lib, plan, source, to, out, (name) => {
-              if (name === 'landed') done += 1;
-              step(name, { done, of });
-            });
+            await runAlt(lib, plan, source, to, out, tick);
           } catch (err) {
             if (!out.moved.length) throw err;
             console.warn('sol: the move stopped part way', err && (err.code || err.message));
             work.slice(i).forEach((rest) => left.push({ what: 'SOL', why: 'unknown', path: rest.path }));
+            ended.forEach((rest) => left.push({ what: 'SOL', why: 'unknown', path: rest.path }));
             return;
+          }
+        }
+        if (ended.length) {
+          const paths = new Map(ended.map((one) => [one && one.path, one && one.n]));
+          const keyFor = async (path) => {
+            if (typeof path !== 'string' || !ORDER_PATH.test(path) || !paths.has(path)) throw fail('bad_intent');
+            return more.alt(path);
+          };
+          const drop = async (n) => {
+            if (!Number.isInteger(n) || paths.get('order:' + n) !== n || typeof more.orderDrop !== 'function') return false;
+            return more.orderDrop(n);
+          };
+          try {
+            await ordersApi().endedSweep(Object.freeze({ lib, keyFor, drop, to, own, list: ended, out, tick }));
+          } catch (err) {
+            if (!out.moved.length) throw err;
+            console.warn('sol: the ended stops were not all cleaned', err && (err.code || err.message));
+            ended.forEach((rest) => left.push({ what: 'SOL', why: 'unknown', path: rest.path }));
           }
         }
       }, { password: opts.password, wallet: own });
@@ -1905,6 +1987,8 @@
     auditWithdraw,
     ataOf,
     compile,
+    parts: Object.freeze({ concat, shortvec, readShortvec, u32, u64, readU32, readU64, hexBytes, bytesHex, keyBytes, onCurve, pdaOf, ataOf, ataRent, compile, compileV0, budget, feeOf, readTx, state, holdingsOf, landing, RENT_MIN, ATA_RENT, ATA_RENT_2022, SIG_FEE, PRIORITY_MAX, CU_MAX, SOL_TX_MAX }),
+    ordersHook,
     topupUsd: 1,
     gasLow: (lamports) => typeof lamports === 'bigint' && lamports < ATA_RENT + RENT_MIN,
     pins: () => ({ program: RELAY_PROGRAM, vault: RELAY_VAULT, config: RELAY_CONFIG, depositoryRaw: DEPOSITORY_RAW, forwarder: FORWARDER_PROGRAM, forwarderAccount: FORWARDER, jupiter: JUPITER, relayTable: RELAY_TABLE, relayTableKeys: RELAY_TABLE_KEYS })
